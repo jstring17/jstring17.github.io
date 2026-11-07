@@ -32,11 +32,13 @@
           <time datetime="{{ post.date }}">{{ post.date | date(format='%b %-d, %Y') }}</time>
         </div>
         {% if post.description %}<p>{{ post.description }}</p>{% endif %}
+        {% if post.taxonomies.tags %}
         <div class="post-tags" aria-label="Post tags">
           {% for tag in post.taxonomies.tags | default(value=[]) %}
           <a href="{{ get_url(path='/') }}?tag={{ tag }}">{{ tag }}</a>
           {% endfor %}
         </div>
+        {% endif %}
       </article>
       {% endfor %}
     </div>

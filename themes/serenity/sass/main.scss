@@ -1513,8 +1513,18 @@ body.blog #wrapper, body.post main { max-width: 800px; }
 }
 body.blog main.blog-main { margin: 0; padding: 0 24px; }
 body.blog .section-title { padding: 0; }
-body.blog .blog-heading { margin: 0; font-size: 1em; align-items: baseline; }
-body.blog .blog-heading #search-button { align-self: flex-start; margin-top: 9px; }
+body.blog .blog-heading { margin: 0 0 24px; font-size: 1em; align-items: center; }
+body.blog .blog-heading #search-button {
+  align-self: center;
+  justify-content: center;
+  width: 40px;
+  height: 36px;
+  margin-top: 0;
+  color: var(--text-pale-color);
+  cursor: pointer;
+  svg { width: 18px; height: 18px; }
+  &:hover { color: var(--text-color); }
+}
 body.blog .section-title h1, body.post article.prose > h1 {
   font-size: 1.65em;
   letter-spacing: -0.035em;
@@ -1522,6 +1532,7 @@ body.blog .section-title h1, body.post article.prose > h1 {
   margin: 0 0 24px;
 }
 body.post main { justify-content: flex-start; }
+body.blog .section-title .blog-heading h1 { margin: 0; }
 body.post article.prose { padding: 0 24px 40px; }
 body.post article #post-info {
   flex-direction: column;
@@ -1540,8 +1551,8 @@ body.post article #post-info {
   time { white-space: nowrap; font-size: 0.75em; color: var(--text-pale-color); }
   p { margin: 10px 0 14px; font-size: 0.9em; color: var(--text-pale-color); line-height: 1.7; }
 }
-.post-tags { display: flex; flex-wrap: wrap; gap: 0; margin-top: 10px; }
-body.post article #post-info #tags { gap: 0; }
+.post-tags { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; }
+body.post article #post-info #tags { gap: 16px; }
 .post-tags a, body.post article #tags a {
   color: var(--text-pale-color);
   background: none;
@@ -1553,12 +1564,6 @@ body.post article #post-info #tags { gap: 0; }
   text-decoration: none;
   transition: color 120ms ease;
   &:hover { color: var(--text-color); border: 0; }
-  + a::before {
-    content: '·';
-    display: inline-block;
-    margin: 0 9px;
-    color: var(--text-decoration-color);
-  }
 }
 .active-tag {
   display: flex;

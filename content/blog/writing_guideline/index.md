@@ -7,7 +7,6 @@ updated = 2026-10-15
 aliases = ["/posts/visuals/", "/posts/writing/"]
 [taxonomies]
 categories = ["Guide"]
-tags = ["AI", "Research"]
 [extra]
 lang = "en"
 toc = true
