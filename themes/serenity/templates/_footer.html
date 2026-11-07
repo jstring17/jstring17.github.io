@@ -14,7 +14,7 @@
     <a id="markdown-btn" hidden target="_blank" rel="noopener" aria-label="Open Markdown source in a new tab">.md</a>
     {% endif %}
 
-    {% if color_scheme == "auto" %}
+    {% if color_scheme == "auto" and not page is defined and not section is defined %}
     {% set moon_icon = load_data(path="icon/moon.svg") %}
     {% set sun_icon = load_data(path="icon/sun.svg") %}
     <button id="theme-toggle" aria-label="theme switch">

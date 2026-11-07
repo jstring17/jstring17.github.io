@@ -7,7 +7,7 @@ updated = 2026-10-15
 aliases = ["/posts/visuals/", "/posts/writing/"]
 [taxonomies]
 categories = ["Guide"]
-tags = ["serenity", "writing", "visualization"]
+tags = ["AI", "Research"]
 [extra]
 lang = "en"
 toc = true
@@ -23,7 +23,7 @@ A working reference for writing with Serenity. Open `.md` in the footer to copy 
 
 ## Front matter
 
-Create `content/blog/my-post/index.md`; keep chart scripts beside it and host images at `https://img.smileyhojin.com`. This guide is a draft: preview it with `zola serve --drafts`; set `draft = false` to publish. The old dates demonstrate the outdated alert.
+Create `content/blog/my-post/index.md`; keep chart scripts beside it and keep images in the same folder. This guide is a draft: preview it with `zola serve --drafts`; set `draft = false` to publish. The old dates demonstrate the outdated alert.
 
 ```toml
 # Wrap front matter in +++ delimiters.
@@ -34,7 +34,7 @@ updated = 2026-10-11           # Optional update date
 draft = false                # true: hide from production builds
 
 [taxonomies]
-tags = ["serenity", "writing"]
+tags = ["AI", "Research"]    # AI, Bio, Market, Research
 categories = ["Guide"]       # Group with section extra.categorized = true
 
 [extra]
@@ -110,7 +110,7 @@ fn main() -> io::Result<()> {
 
 ### Images
 
-![Photo DSCF1501](https://img.smileyhojin.com/DSCF1501.webp)
+Store an image beside this file, then use `![Description](image.webp)`.
 
 ## Extra Features
 
@@ -149,7 +149,7 @@ A second paragraph.
 **Markdown** inside a disclosure.
 {% </detail> %}
 
-{{ <figure src="https://img.smileyhojin.com/DSCF1501.webp" alt="Photo DSCF1501" caption="**Figure 1.** A caption." width="480" page /> }}
+Figures can use a local image stored alongside the post.
 
 ### Math
 
@@ -203,6 +203,7 @@ Charts resize automatically and redraw on light/dark changes, resetting interact
 
 - **Search:** Blog page icon or `/`; `Esc` to close, arrow keys to navigate. Searches titles, descriptions, and body text; excludes code blocks. Try `Markdown` for match highlighting.
 - **Navigation:** fixed desktop TOC, heading anchors, and back-to-top button.
-- **Footer:** light/dark switch and `.md` source in a new tab.
+- **Header:** name links to the blog; the light/dark switch remembers your preference.
+- **Footer:** `.md` source in a new tab.
 
 [^note]: A footnote with a return link.

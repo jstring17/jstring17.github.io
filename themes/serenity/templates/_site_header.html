@@ -1,0 +1,7 @@
+<header class="site-header">
+  <a class="site-name" href="{{ get_url(path='/') }}">{{ config.extra.name }}</a>
+  <button id="theme-toggle" type="button" aria-label="Switch color theme" title="Switch color theme">
+    <span class="moon-icon">{{ load_data(path="icon/moon.svg") | safe }}</span>
+    <span class="sun-icon">{{ load_data(path="icon/sun.svg") | safe }}</span>
+  </button>
+</header>

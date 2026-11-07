@@ -1,5 +1,5 @@
 {
-  description = "Smileyhojin's blog development environment";
+  description = "Johyun Park's blog development environment";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

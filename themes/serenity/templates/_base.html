@@ -21,7 +21,8 @@
 <body class="{% block page %}{% endblock page%}{% if color_scheme == "dark" %} dark{% endif %}">
   {% if color_scheme == "auto" %}
   <script>
-    const theme = sessionStorage.getItem('theme');
+    let theme;
+    try { theme = localStorage.getItem('theme'); } catch {}
     const match = window.matchMedia("(prefers-color-scheme: dark)").matches;
     if ((theme && theme == 'dark') || (!theme && match)) {
       document.body.classList.add('dark');

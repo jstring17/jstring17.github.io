@@ -1,21 +1,63 @@
 function enableThemeToggle() {
-  const themeToggle = document.querySelector('#theme-toggle');
-  if (!themeToggle) return;
-  const hlLink = document.querySelector('link#hl');
-  const preferDark = window.matchMedia("(prefers-color-scheme: dark)");
-  function applyTheme(theme) {
+  const toggle = document.querySelector('#theme-toggle');
+  if (!toggle) return;
+  const hl = document.querySelector('link#hl');
+  const preference = window.matchMedia('(prefers-color-scheme: dark)');
+  let saved;
+  try { saved = localStorage.getItem('theme'); } catch {}
+  function apply(theme) {
     document.body.classList.toggle('dark', theme === 'dark');
-    if (hlLink) hlLink.href = hlLink.dataset[theme];
+    if (hl) hl.href = hl.dataset[theme];
+    const label = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+    toggle.setAttribute('aria-label', label);
+    toggle.title = label;
   }
-  themeToggle.addEventListener('click', () => {
-    const theme = document.body.classList.contains('dark') ? 'light' : 'dark';
-    sessionStorage.setItem('theme', theme);
-    applyTheme(theme);
+  toggle.addEventListener('click', () => {
+    saved = document.body.classList.contains('dark') ? 'light' : 'dark';
+    try { localStorage.setItem('theme', saved); } catch {}
+    apply(saved);
   });
-  preferDark.addEventListener('change', e => {
-    if (!sessionStorage.getItem('theme')) applyTheme(e.matches ? 'dark' : 'light');
+  preference.addEventListener('change', event => {
+    if (!saved) apply(event.matches ? 'dark' : 'light');
   });
-  applyTheme(sessionStorage.getItem('theme') || (preferDark.matches ? 'dark' : 'light'));
+  apply(saved || (preference.matches ? 'dark' : 'light'));
+}
+
+function enableTagFilters() {
+  const nav = document.querySelector('.tag-filters');
+  if (!nav) return;
+  const links = [...nav.querySelectorAll('[data-filter]')];
+  const posts = [...document.querySelectorAll('.post-entry')];
+  const empty = document.querySelector('#empty-posts');
+  const status = document.querySelector('#filter-status');
+  function render() {
+    const requested = new URL(location.href).searchParams.get('tag') || 'All';
+    const selected = links.some(link => link.dataset.filter === requested) ? requested : 'All';
+    let count = 0;
+    posts.forEach(post => {
+      post.hidden = selected !== 'All' && !post.dataset.tags.split(',').includes(selected);
+      if (!post.hidden) count++;
+    });
+    links.forEach(link => {
+      if (link.dataset.filter === selected) link.setAttribute('aria-current', 'true');
+      else link.removeAttribute('aria-current');
+    });
+    empty.hidden = count > 0;
+    empty.textContent = selected === 'All' ? 'No posts yet.' : `No posts tagged ${selected} yet.`;
+    status.textContent = `${count} ${count === 1 ? 'post' : 'posts'}${selected === 'All' ? '' : ` · ${selected}`}`;
+  }
+  nav.addEventListener('click', event => {
+    const link = event.target.closest('[data-filter]');
+    if (!link || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    event.preventDefault();
+    const url = new URL(location.href);
+    if (link.dataset.filter === 'All') url.searchParams.delete('tag');
+    else url.searchParams.set('tag', link.dataset.filter);
+    history.pushState(null, '', url);
+    render();
+  });
+  window.addEventListener('popstate', render);
+  render();
 }
 
 function enablePrerender() {
@@ -239,6 +281,7 @@ function enableImgLightense() {
 }
 
 enableThemeToggle();
+enableTagFilters();
 enablePrerender();
 if (document.body.classList.contains('post')) {
   enableOutdateAlert();

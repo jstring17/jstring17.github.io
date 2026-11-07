@@ -67,7 +67,7 @@
     {% endif %}
   </aside>
   <main>
-    {{ <back_link path={get_url(path=section.path)} config /> }}
+    {% include "_site_header.html" %}
 
     <div>
       {% set allow_copy = page.extra.code_copy if page.extra.code_copy is defined else (section.extra.code_copy if section.extra.code_copy is defined else (config.extra.code_copy if config.extra.code_copy is defined else false)) %}
@@ -90,7 +90,7 @@
           {% if page.taxonomies.tags is defined %}
           <div id="tags">
             {% for tag in page.taxonomies.tags -%}
-            <a class="instant" href="{{ get_taxonomy_url(kind="tags", term=tag) }}"><span>#</span>{{ tag }}</a>
+            <a href="{{ get_url(path='/') }}?tag={{ tag }}">{{ tag }}</a>
             {%- endfor %}
           </div>
           {% endif %}

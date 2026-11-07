@@ -1,8 +1,8 @@
 #:tombi schema.strict = false
 
-base_url = "https://smileyhojin.com"
-title = "Smileyhojin"
-description = "Smileyhojin's webpage."
+base_url = "https://johyun.github.io"
+title = "Johyun Park"
+description = "Notes on AI, Bio, Market, and Research by Johyun Park."
 default_language = "en"
 theme = "serenity"
 output_dir = "public"
@@ -40,25 +40,24 @@ anchors = "on"
 
 [extra]
 nav = [
-  { name = "blog", path = "/blog" },
+  { name = "blog", path = "/" },
   # { name = "tags", path = "/tags" },
 ]
 
-name = "Hojin Yoo"
-handle = "Smileyhojin"
-bio = "I know what I like... and I like what I know..."
+name = "Johyun Park"
+handle = "johyun"
+bio = ""
 links = [
-  { name = "LinkedIn", icon = "linkedin", url = "https://www.linkedin.com/in/smileyhojin/" },
-  { name = "GitHub", icon = "github", url = "https://github.com/Smileyhojin" },
-  { name = "Email", icon = "email", url = "mailto:smileyhojin@snu.ac.kr" },
+  { name = "GitHub", icon = "github", url = "https://github.com/johyun" },
 ]
+blog_tags = ["AI", "Bio", "Market", "Research"]
 
 blog_section_path = "/blog"
 
-color_scheme = "light"
+color_scheme = "auto"
 back_link_text = "Back"
 
-footer_copyright = "© 2026 Smileyhojin"
+footer_copyright = "© 2026 Johyun Park"
 footer_credits = false
 
 not_found_error_text = "404 Not Found"

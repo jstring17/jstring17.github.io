@@ -1,5 +1,7 @@
 +++
-template = 'home.html'
+title = "Blog"
+description = "Notes on AI, Bio, Market, and Research by Johyun Park."
+template = "blog.html"
 
 [extra]
 

@@ -1,6 +1,6 @@
 +++
-title = "Smileyhojin::Blog"
-description = "Smileyhojin's blog"
+title = "Blog"
+description = "Johyun Park's blog"
 aliases = ["/posts/"]
 sort_by = "date"
 template = "blog.html"
