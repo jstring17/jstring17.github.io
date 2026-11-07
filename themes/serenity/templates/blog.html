@@ -20,12 +20,10 @@
         {% endif %}
       </div>
     </div>
-    <nav class="tag-filters" aria-label="Filter posts by tag">
-      <a href="{{ get_url(path='/') }}" data-filter="All" aria-current="true">All</a>
-      {% for tag in config.extra.blog_tags %}
-      <a href="{{ get_url(path='/') }}?tag={{ tag }}" data-filter="{{ tag }}">{{ tag }}</a>
-      {% endfor %}
-    </nav>
+    <div id="active-tag" class="active-tag" hidden>
+      <span id="filter-status" role="status" aria-live="polite"></span>
+      <a href="{{ get_url(path='/') }}">All posts</a>
+    </div>
     <div class="blog-posts">
       {% for post in blog.pages %}
       <article class="post-entry" data-tags="{{ post.taxonomies.tags | default(value=[]) | join(sep=',') }}">
@@ -42,7 +40,6 @@
       </article>
       {% endfor %}
     </div>
-    <p id="filter-status" class="filter-status" role="status" aria-live="polite"></p>
     <p id="empty-posts" class="empty-posts" {% if blog.pages | length > 0 %}hidden{% endif %}>No posts yet.</p>
   </main>
   {% include "_footer.html" %}
