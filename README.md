@@ -67,3 +67,15 @@ authentication and Git author configuration; these are not copied by cloning.
 preserve the original baseline. GitHub Actions is disabled for code-only synchronization.
 No site has been deployed. Before enabling deployment, choose the actual Pages URL:
 the GitHub account is `jstring17`, while `base_url` currently uses `johyun.github.io`.
+
+Use the current GitHub identity on each computer before creating commits:
+
+```sh
+git config user.name "Johyun Park"
+git config user.email "149886130+jstring17@users.noreply.github.com"
+```
+
+These commands apply to this repository. GitHub login and commit authorship are
+separate: signing in as `jstring17` does not change the email embedded in commits.
+On 2026-11-07, the six customization commits were rewritten to this identity;
+upstream commits and the original baseline tag were preserved.
