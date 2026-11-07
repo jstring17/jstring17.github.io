@@ -1,0 +1,9 @@
+{% component search_posts(path: string) %}
+{% set blog = get_section(path=path) %}
+{% for post in blog.pages %}
+<span data-search-post="{{ post.permalink }}"></span>
+{% endfor %}
+{% for child in blog.subsections %}
+{{ <search_posts path={child} /> }}
+{% endfor %}
+{% endcomponent search_posts %}

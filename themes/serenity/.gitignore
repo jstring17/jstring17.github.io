@@ -1,0 +1,6 @@
+.zed/
+.claude/
+public/
+.playwright-cli/
+/static/processed_images/
+.DS_Store

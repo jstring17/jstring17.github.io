@@ -1,0 +1,7 @@
+public/
+.playwright-cli/
+
+.DS_Store
+
+# Zola-generated image cache
+/static/processed_images/

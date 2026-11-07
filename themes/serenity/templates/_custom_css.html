@@ -1,0 +1,108 @@
+<style>
+
+  @font-face {
+    font-family: 'Noto Sans KR';
+    src: url('{{ get_url(path="fonts/noto-sans-kr/NotoSansKR-Variable.woff2") }}') format('woff2');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'CaskaydiaCove Nerd Font Mono';
+    src: url('{{ get_url(path="fonts/caskaydia-cove/CaskaydiaCoveNerdFontMono-Regular.woff2") }}') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'CaskaydiaCove Nerd Font Mono';
+    src: url('{{ get_url(path="fonts/caskaydia-cove/CaskaydiaCoveNerdFontMono-Bold.woff2") }}') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'CaskaydiaCove Nerd Font Mono';
+    src: url('{{ get_url(path="fonts/caskaydia-cove/CaskaydiaCoveNerdFontMono-Italic.woff2") }}') format('woff2');
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'CaskaydiaCove Nerd Font Mono';
+    src: url('{{ get_url(path="fonts/caskaydia-cove/CaskaydiaCoveNerdFontMono-BoldItalic.woff2") }}') format('woff2');
+    font-weight: 700;
+    font-style: italic;
+    font-display: swap;
+  }
+
+  /* One Light colors */
+  body {
+    --primary-color: #4078f2;
+    --primary-pale-color: #4078f233;
+    --primary-decoration-color: #4078f210;
+    --bg-color: #fafafa;
+    --block-bg-color: #f5f5f6;
+    --code-highlight-bg-color: #e9eaec;
+    --block-border-color: #383a4226;
+    --text-color: #383a42;
+    --text-pale-color: #696c77;
+    --text-decoration-color: #a0a1a7;
+    --highlight-mark-color: #c1840120;
+    --search-match-bg-color: #dceefa;
+
+    --callout-note-color: #4078f2;
+    --callout-tip-color: #50a14f;
+    --callout-important-color: #a626a4;
+    --callout-warning-color: #c18401;
+    --callout-caution-color: #e45649;
+  }
+
+  /* One Dark colors */
+  body.dark {
+    --primary-color: #61afef;
+    --primary-pale-color: #61afef40;
+    --primary-decoration-color: #61afef12;
+    --bg-color: #282c34;
+    --block-bg-color: #2c313a;
+    --code-highlight-bg-color: #23272e;
+    --block-border-color: #abb2bf26;
+    --text-color: #abb2bf;
+    --text-pale-color: #828997;
+    --text-decoration-color: #5c6370;
+    --highlight-mark-color: #e5c07b30;
+    --search-match-bg-color: #61afef33;
+
+    --callout-note-color: #61afef;
+    --callout-tip-color: #98c379;
+    --callout-important-color: #c678dd;
+    --callout-warning-color: #e5c07b;
+    --callout-caution-color: #e06c75;
+  }
+
+  /* typography */
+  body {
+    --main-font: 'Noto Sans KR', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --code-font: 'CaskaydiaCove Nerd Font Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --homepage-max-width: 768px;
+    --main-max-width: 768px;
+    --avatar-size: 60px;
+    --font-size: 16px;
+    --line-height: 1.75;
+    --img-border-radius: 0px;
+    --block-radius: 0px;
+    --detail-border-radius: var(--block-radius);
+    --dark-mode-img-brightness: 0.75;
+    --dark-mode-chart-brightness: 0.75;
+    --inline-code-border-radius: 0px;
+    --inline-code-bg-color: var(--primary-decoration-color);
+    --block-code-border-radius: var(--block-radius);
+    --block-code-border-color: transparent;
+    --detail-border-color: transparent;
+  }
+
+</style>

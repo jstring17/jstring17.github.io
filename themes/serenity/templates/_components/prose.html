@@ -1,0 +1,88 @@
+{#
+  Components in this file are used inside markdown content, which is rendered
+  as a Tera template first and *then* processed as markdown (zola >= 0.23).
+  Their HTML output must therefore stay markdown-safe: no blank lines in the
+  middle of an HTML block, and no lines indented by 4+ spaces.
+#}
+
+{% component back_link(path: string, config) %}
+<header>
+  <nav>
+    <a id="back-link" href="{% if path %}{{ path }}{% else %}/{% endif %}">← {{ config.extra.back_link_text }}</a>
+  </nav>
+</header>
+{% endcomponent back_link %}
+
+
+{% component quote(cite: string = "") -%}
+{%- set icon = load_data(path="icon/quote.svg") -%}
+<blockquote class="quote">
+<div class="icon" style="display: none;">{{ icon | trim | safe }}</div>
+<div class="content">
+{{ body | markdown | trim | safe }}
+</div>
+{%- if cite -%}
+{%- set from_text = "— " ~ cite -%}
+<div class="from">
+{{ from_text | markdown | trim | safe }}
+</div>
+{%- endif -%}
+</blockquote>
+{%- endcomponent quote %}
+
+
+{% component detail(title: string = "", default_open: bool = false) -%}
+<details{% if default_open %} open{% endif %}>
+<summary><span>{{ title }}</span></summary>
+{{ body | markdown | trim | safe }}
+</details>
+{%- endcomponent detail %}
+
+
+{% component figure(src: string, alt: string = "", caption: string = "", width: string = "", height: string = "", page = {}, section = {}) -%}
+{%- if src is starting_with(pat="/") or src is starting_with(pat="http://") or src is starting_with(pat="https://") or src is starting_with(pat="//") or src is starting_with(pat="data:") -%}
+{%- set image_src = src -%}
+{%- elif page?.colocated_path -%}
+{%- set image_src = get_url(path='@/' ~ page.colocated_path ~ src) -%}
+{%- elif section?.colocated_path -%}
+{%- set image_src = get_url(path='@/' ~ section.colocated_path ~ src) -%}
+{%- else -%}
+{%- set image_src = src -%}
+{%- endif -%}
+<figure>
+<img src="{{ image_src }}"{% if alt %} alt="{{ alt }}"{% endif %}{% if height %} height="{{ height }}"{% endif %}{% if width %} width="{{ width }}"{% endif %}>
+{%- if caption -%}
+<figcaption>{{ caption | trim | markdown | trim | safe }}</figcaption>
+{%- endif -%}
+</figure>
+{%- endcomponent figure %}
+
+
+{% component mermaid() -%}
+<pre class="mermaid">
+{{ body }}
+</pre>
+{%- endcomponent mermaid %}
+
+
+{% component youtube(id: string, autoplay: bool = false) -%}
+<div class="youtube">
+<iframe src="https://www.youtube.com/embed/{{ id }}{% if autoplay %}?autoplay=1&mute=1{% endif %}" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
+</div>
+{%- endcomponent youtube %}
+
+
+{# Adapted from Bearplus's ECharts shortcode; see THIRD_PARTY.md. #}
+{% component echarts(js_file: string, title: string = "Interactive chart", width: string = "100%", height: string = "400px", gl: bool = false, page = {}, section = {}) -%}
+{%- if page?.colocated_path -%}
+{%- set chart_path = page.colocated_path ~ js_file -%}
+{%- elif section?.colocated_path -%}
+{%- set chart_path = section.colocated_path ~ js_file -%}
+{%- else -%}
+{{ throw(message="ECharts requires a colocated JavaScript file. Pass page or section to the component.") }}
+{%- endif -%}
+{%- set chart_source = load_data(path=chart_path, format="plain") -%}
+<div class="echart" role="figure" aria-label="{{ title }}" style="width: {{ width }}; height: {{ height }};" data-chart-src="{{ get_url(path='@/' ~ chart_path) }}" data-chart-gl="{{ gl }}" data-state="loading"><p class="chart-status" role="status">Loading chart…</p></div>
+<script type="module" src="{{ get_url(path="js/charts.js") }}"></script>
+<noscript><p>Enable JavaScript to view this chart.</p></noscript>
+{%- endcomponent echarts %}

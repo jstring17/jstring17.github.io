@@ -1,0 +1,14 @@
+<dialog id="search-dialog" aria-labelledby="search-title" data-index="{{ get_url(path='search_index.' ~ lang ~ '.json') }}">
+  <div class="search-heading">
+    <h2 id="search-title">Search</h2>
+    <button id="search-close" type="button" aria-label="Close search">×</button>
+  </div>
+  <input id="search-input" aria-label="Search blog" type="search" placeholder="Search…" autocomplete="off" spellcheck="false" autofocus>
+  <p id="search-status" role="status"></p>
+  <ul id="search-results" aria-label="Search results"></ul>
+</dialog>
+<div id="search-posts" hidden>
+  {% set blog_path = config.extra.blog_section_path | trim_start(pat="/") | trim_end(pat="/") %}
+  {{ <search_posts path={blog_path ~ "/_index.md"} /> }}
+</div>
+<script defer src="{{ get_url(path='js/search.js') }}"></script>

@@ -1,0 +1,124 @@
+{% extends "_base.html" %}
+
+{% block page %}post{% endblock page %}
+{% block lang -%}
+{%- set section = get_section(path=page.ancestors | last, metadata_only=true) -%}
+{%- if page.extra.lang %}{{page.extra.lang}}{% elif section.extra.lang %}{{section.extra.lang}}{% else %}{{page.lang}}{% endif -%}
+{%- endblock lang %}
+{% block title %}{{ page.title }}{% endblock title %}
+{% block desc %}
+  {%- set section = get_section(path=page.ancestors | last, metadata_only=true) -%}
+  {% if page.summary %}
+    {% set desc = page.summary %}
+  {% elif page.description %}
+    {% set desc = page.description %}
+  {% elif section.description %}
+    {% set desc = section.description %}
+  {% else %}
+    {% set desc = config.description %}
+  {% endif %}
+  {%- if page.extra.lang %}{% set og_lang = page.extra.lang %}{% elif section.extra.lang %}{% set og_lang = section.extra.lang %}{% else %}{% set og_lang = page.lang %}{% endif -%}
+  {{ <seo config
+      title={page.title}
+      desc={desc}
+      url={page.permalink}
+      page_type="article"
+      image={page.extra?.og_image or ""}
+      colocated_path={page.colocated_path or ""}
+      published={page.date or ""}
+      updated={page.updated or ""}
+      tags={page.taxonomies?.tags or []}
+      lang={og_lang} /> }}
+{% endblock desc %}
+
+{% block head %}
+{% include "_prose_head.html" %}
+{% endblock head %}
+
+{% block content %}
+<div id="wrapper">
+  <aside>
+    {% set show_toc = page.extra.toc if page.extra.toc is defined else (section.extra.toc if section.extra.toc is defined else (config.extra.toc if config.extra.toc is defined else false)) %}
+    {% if show_toc and page.toc %}
+    <nav>
+      <ul>
+        {% for h2 in page.toc %}
+        <li>
+          <a class="h2" href="#{{ h2.id | safe }}">{{ h2.title }}</a>
+          {% if h2.children %}
+          <ul>
+            {% for h3 in h2.children %}
+            <li>
+              <a class="h3" href="#{{ h3.id | safe }}">{{ h3.title }}</a>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </nav>
+    {% endif %}
+    {% if section.extra.back_to_top %}
+    <button id="back-to-top" aria-label="back to top">
+      {% set icon = load_data(path="icon/arrow-up.svg") %}
+      {{ icon | safe }}
+    </button>
+    {% endif %}
+  </aside>
+  <main>
+    {{ <back_link path={get_url(path=section.path)} config /> }}
+
+    <div>
+      {% set allow_copy = page.extra.code_copy if page.extra.code_copy is defined else (section.extra.code_copy if section.extra.code_copy is defined else (config.extra.code_copy if config.extra.code_copy is defined else false)) %}
+      {% if allow_copy %}
+      {% set copy_icon = load_data(path="icon/copy.svg") %}
+      {% set check_icon = load_data(path="icon/check.svg") %}
+      <div id="copy-cfg" style="display: none;" data-copy-icon="{{ copy_icon }}" data-check-icon="{{ check_icon }}"></div>
+      {% endif %}
+      <article class="prose">
+        <h1>{{ page.title }}</h1>
+        {% set date_format = section.extra.date_format if section.extra.date_format is defined else (config.extra.date_format if config.extra.date_format is defined else "%b %-d, %Y") %}
+        <div id="post-info">
+          <div id="date">
+            <span id="publish">{{ page.date | date(format=date_format) }}</span>
+            {% if page.updated and page.updated != page.date -%}
+            <span>Updated on <span id="updated">{{ page.updated | date(format=date_format) }}</span></span>
+            {% endif -%}
+          </div>
+
+          {% if page.taxonomies.tags is defined %}
+          <div id="tags">
+            {% for tag in page.taxonomies.tags -%}
+            <a class="instant" href="{{ get_taxonomy_url(kind="tags", term=tag) }}"><span>#</span>{{ tag }}</a>
+            {%- endfor %}
+          </div>
+          {% endif %}
+        </div>
+
+        {% set show_outdated_alert = page.extra.outdated_alert if page.extra.outdated_alert is defined else (section.extra.outdated_alert if section.extra.outdated_alert is defined else (config.extra.outdated_alert if config.extra.outdated_alert is defined else false)) %}
+        {% set outdated_alert_days = page.extra.outdated_alert_days if page.extra.outdated_alert_days is defined else (section.extra.outdated_alert_days if section.extra.outdated_alert_days is defined else (config.extra.outdated_alert_days if config.extra.outdated_alert_days is defined else 120)) %}
+
+        {% if show_outdated_alert -%}
+        {% set outdated_alert_text_before = section.extra.outdated_alert_text_before if section.extra.outdated_alert_text_before is defined else (config.extra.outdated_alert_text_before if config.extra.outdated_alert_text_before is defined else "") %}
+        {% set outdated_alert_text_after = section.extra.outdated_alert_text_after if section.extra.outdated_alert_text_after is defined else (config.extra.outdated_alert_text_after if config.extra.outdated_alert_text_after is defined else "") %}
+        <blockquote id="outdate_alert" class="markdown-alert-caution hidden" data-days="{{ outdated_alert_days }}"
+          data-updated="{{ page.updated or page.date }}"
+          data-alert-text-before="{{ outdated_alert_text_before }}"
+          data-alert-text-after="{{ outdated_alert_text_after }}">
+          <div class="content"></div>
+        </blockquote>
+        {% endif %}
+
+        {{ page.content | safe }}
+      </article>
+    </div>
+
+    {% include "_footer.html" %}
+  </main>
+</div>
+{% endblock content %}
+
+{% block script %}
+{% include "_prose_scripts.html" %}
+{% endblock script %}

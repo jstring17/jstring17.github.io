@@ -1,0 +1,85 @@
+#:tombi schema.strict = false
+# Allow Zola extensions and theme-specific [extra] keys.
+
+base_url = "https://example.com"
+title = "My Blog"
+description = "Notes and articles"
+default_language = "en"
+theme = "serenity"
+output_dir = "public"
+compile_sass = true
+minify_html = false
+build_search_index = true # Blog search and the / shortcut
+generate_feeds = false
+taxonomies = [{ name = "tags" }, { name = "categories" }]
+
+[search]
+index_format = "fuse_json"
+include_title = true
+include_description = true
+include_content = true
+
+[markdown]
+render_emoji = false
+external_links_target_blank = false
+external_links_no_follow = true
+external_links_no_referrer = true
+smart_punctuation = false
+github_alerts = true
+
+[markdown.highlighting]
+style = "class"
+light_theme = "one-light"
+dark_theme = "one-dark-pro"
+
+[slugify]
+paths = "on"
+taxonomies = "on"
+anchors = "on"
+
+#=========================================================================================
+
+[extra]
+
+nav = [
+  { name = "blog", path = "/blog" },
+  # { name = "tags", path = "/tags" },
+  # { name = "github", path = "https://github.com/<your-username>" },
+]
+
+# Your info on the home page, if you don't want to display handle/bio/avatar, simply comment out that line
+name = "Your Name"
+handle = "your-handle"
+bio = "A short introduction"
+# avatar = "profile.png" # e.g. content/profile.png
+# avatar_resize = true # Local raster image: 256×256 JPEG, center crop
+links = [
+  { name = "GitHub", icon = "github", url = "https://github.com/<your-username>" },
+  { name = "Email", icon = "email", url = "mailto:<your-email-address>" },
+  { name = "Twitter", icon = "twitter", url = "https://twitter.com/<your-username>" },
+  { name = "Mastodon", icon = "mastodon", url = "https://mastodon.social/<your-username>", rel_me = true },
+]
+blog_section_path = "/blog" # Path of the main blog section, used by home page's recent posts and tags pages
+
+back_link_text = "Back" # Text of the back button
+color_scheme = "auto" # "auto" | "light" | "dark"
+
+# og_image = "profile.png" # Default external sharing image
+# og_image_resize = true # Local raster image: fit within 1200×1200
+
+footer_copyright = "© 2026 <your-name>"
+footer_credits = false # Whether to show "Built with zola and serenity" in footer
+
+not_found_error_text = "404 Not Found"
+not_found_recover_text = "« back to home »"
+
+# Site-wide default values of display options, can be overridden in a section's `_index.md`, and again in a post's front-matter
+date_format = "%b %-d, %Y"
+toc = true # show table-of-contents
+code_copy = true # show copy button in code block
+math = false # enable formula rendering with KaTeX
+mermaid = false # enable chart rendering with Mermaid
+outdated_alert = false # show outdate alert after certain days
+outdated_alert_days = 120
+outdated_alert_text_before = "This article was last updated "
+outdated_alert_text_after = " days ago and may be out of date."

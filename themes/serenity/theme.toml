@@ -1,0 +1,10 @@
+name = "serenity"
+description = "A minimal blog theme for zola"
+license = "MIT"
+min_version = "0.23.6"
+
+[author]
+name = "Smileyhojin"
+homepage = "https://github.com/Smileyhojin"
+
+[extra]

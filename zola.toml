@@ -1,0 +1,65 @@
+#:tombi schema.strict = false
+
+base_url = "https://smileyhojin.com"
+title = "Smileyhojin"
+description = "Smileyhojin's webpage."
+default_language = "en"
+theme = "serenity"
+output_dir = "public"
+compile_sass = true
+minify_html = false
+build_search_index = true
+generate_feeds = false
+taxonomies = [{ name = "tags" }, { name = "categories" }]
+
+[search]
+index_format = "fuse_json"
+include_title = true
+include_description = true
+include_content = true
+
+[markdown]
+render_emoji = true
+external_links_target_blank = false
+external_links_no_follow = true
+external_links_no_referrer = true
+smart_punctuation = false
+github_alerts = true
+
+[markdown.highlighting]
+style = "class"
+light_theme = "one-light"
+dark_theme = "one-dark-pro"
+
+[slugify]
+paths = "on"
+taxonomies = "on"
+anchors = "on"
+
+# =========================================================================================
+
+[extra]
+nav = [
+  { name = "blog", path = "/blog" },
+  # { name = "tags", path = "/tags" },
+]
+
+name = "Hojin Yoo"
+handle = "Smileyhojin"
+bio = "I know what I like... and I like what I know..."
+links = [
+  { name = "LinkedIn", icon = "linkedin", url = "https://www.linkedin.com/in/smileyhojin/" },
+  { name = "GitHub", icon = "github", url = "https://github.com/Smileyhojin" },
+  { name = "Email", icon = "email", url = "mailto:smileyhojin@snu.ac.kr" },
+]
+
+blog_section_path = "/blog"
+
+color_scheme = "light"
+back_link_text = "Back"
+
+footer_copyright = "© 2026 Smileyhojin"
+footer_credits = false
+
+not_found_error_text = "404 Not Found"
+not_found_recover_text = "« back to home »"
