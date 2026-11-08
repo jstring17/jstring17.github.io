@@ -1538,9 +1538,16 @@ body.post article #post-info {
   flex-direction: column;
   align-items: flex-start;
   gap: 12px;
-  margin-bottom: 32px;
+  margin-bottom: 0;
   #tags { order: -1; margin: 0; gap: 8px; }
   #date { margin: 0; font-size: 0.9em; }
+}
+body.post article.prose > hr.post-divider {
+  border: 0;
+  height: 1px;
+  background: var(--block-border-color);
+  opacity: 1;
+  margin: 24px 0 32px;
 }
 .post-entry {
   padding: 24px 0;
