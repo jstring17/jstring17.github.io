@@ -50,6 +50,37 @@ function enableTagFilters() {
   render();
 }
 
+function enableTitleShine() {
+  const allowed = window.matchMedia('(hover: hover) and (prefers-reduced-motion: no-preference)');
+  if (!window.CSS?.registerProperty) return;
+  const SHINE_SLOTS = 6; // keep in step with $shine-slots in main.scss
+  const MIN_GAP = 150; // ms between two bands on one title; 6 slots cover an 800ms sweep
+  for (let i = 0; i < SHINE_SLOTS; i++) {
+    // Registered as a percentage so the band position animates smoothly.
+    try { CSS.registerProperty({ name: `--shine-${i}`, syntax: '<percentage>', inherits: false, initialValue: '0%' }); } catch {}
+  }
+  document.querySelectorAll('.post-entry h3 a').forEach(link => {
+    const bands = new Array(SHINE_SLOTS).fill(null);
+    let lastStart = -Infinity;
+    link.addEventListener('pointerenter', event => {
+      if (event.pointerType === 'touch' || !allowed.matches) return;
+      const now = performance.now();
+      const slot = bands.indexOf(null);
+      if (now - lastStart < MIN_GAP || slot < 0) return;
+      lastStart = now;
+      link.classList.add('shine');
+      // Fast start so the light appears the moment the cursor lands, then eases out.
+      const band = link.animate({ [`--shine-${slot}`]: ['100%', '0%'] }, { duration: 800, easing: 'cubic-bezier(0.2, 0.55, 0.35, 1)' });
+      bands[slot] = band;
+      const free = () => {
+        bands[slot] = null;
+        if (bands.every(b => !b)) link.classList.remove('shine');
+      };
+      band.finished.then(free, free);
+    });
+  });
+}
+
 function enablePrerender() {
   const prerender = (a) => {
     if (!a.classList.contains('instant')) return;
@@ -289,6 +320,7 @@ if (document.body.classList.contains('post')) {
 }
 if (document.body.classList.contains('blog')) {
   enableActiveToc();
+  enableTitleShine();
 }
 if (document.querySelector('.prose')) {
   addCopyBtns();

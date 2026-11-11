@@ -1579,24 +1579,34 @@ body.blog main.blog-main { margin: 0; padding: 0 24px; }
     font-variant-numeric: tabular-nums;
   }
 }
-/* Title hover: underline, plus one band of light sweeping across the letters. */
-@keyframes title-shine {
-  from { background-position: 100% 0; }
-  to { background-position: 0 0; }
+/* Title hover: underline, plus bands of light sweeping across the letters.
+   Each band is its own background layer driven by --shine-N. main.js adds .shine and
+   animates one free --shine-N each time the cursor enters (at most one per 150ms), so
+   bands can overlap on one title and finish after the cursor moves on. */
+$shine-slots: 6; // keep in step with SHINE_SLOTS in main.js
+$shine-band: linear-gradient(110deg,
+  transparent calc(50% - 36px),
+  var(--shine-color) 50%,
+  transparent calc(50% + 36px));
+$shine-images: ();
+$shine-sizes: ();
+$shine-positions: ();
+@for $i from 0 to $shine-slots {
+  $shine-images: append($shine-images, $shine-band, comma);
+  $shine-sizes: append($shine-sizes, (calc(200% + 88px) 100%), comma);
+  $shine-positions: append($shine-positions, (var(--shine-#{$i}) 0), comma);
 }
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .post-entry h3 a:hover {
-    // The band starts and ends fully off the text at any title length.
-    background-image: linear-gradient(110deg,
-      var(--title-color) calc(50% - 36px),
-      var(--shine-color) 50%,
-      var(--title-color) calc(50% + 36px));
-    background-size: calc(200% + 144px) 100%;
+@media (prefers-reduced-motion: no-preference) {
+  .post-entry h3 a.shine {
+    // A band (about 44px either side of its center, slant included) touches the first
+    // letter at 100% and rests just past the last at 0%, at any title length.
+    background-image: $shine-images, linear-gradient(var(--title-color), var(--title-color));
+    background-size: $shine-sizes, 100% 100%;
+    background-position: $shine-positions, 0 0;
     background-repeat: no-repeat;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: title-shine 0.9s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 .post-tags { display: flex; flex-wrap: wrap; gap: 10px; }
