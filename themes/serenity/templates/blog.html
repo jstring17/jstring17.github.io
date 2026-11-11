@@ -9,6 +9,21 @@
 {% set blog = get_section(path="blog/_index.md") %}
 <div id="wrapper">
   {% include "_site_header.html" %}
+  {% if blog.pages | length > 0 %}
+  <aside class="year-index">
+    <nav aria-label="Years">
+      <ul>
+        {% set_global index_year = 0 %}
+        {% for post in blog.pages %}
+        {% if post.year != index_year %}
+        <li><a href="#{{ post.year }}">{{ post.year }}</a></li>
+        {% set_global index_year = post.year %}
+        {% endif %}
+        {% endfor %}
+      </ul>
+    </nav>
+  </aside>
+  {% endif %}
   <main class="blog-main">
     <h1 class="visually-hidden">Blog</h1>
     <div id="active-tag" class="active-tag" hidden>
@@ -21,7 +36,7 @@
       {% if post.year != year %}
       {% if not loop.first %}</div></section>{% endif %}
       <section class="year-group">
-        <h2 class="year">{{ post.year }}</h2>
+        <h2 class="year" id="{{ post.year }}">{{ post.year }}</h2>
         <div class="year-posts">
       {% set_global year = post.year %}
       {% endif %}

@@ -40,6 +40,11 @@ function enableTagFilters() {
     status.textContent = selected || '';
     empty.hidden = count > 0;
     empty.textContent = selected ? `No posts tagged ${selected} yet.` : 'No posts yet.';
+    // Years with no matching posts drop out of the year index too.
+    document.querySelectorAll('.year-index li').forEach(item => {
+      const group = document.getElementById(item.querySelector('a').hash.slice(1))?.closest('.year-group');
+      item.hidden = Boolean(group) && !group.querySelector('.post-entry:not([hidden])');
+    });
   }
   window.addEventListener('popstate', render);
   render();
@@ -106,7 +111,7 @@ function enableTocTooltip() {
 }
 
 function enableActiveToc() {
-  const nav = document.querySelector('body.post aside nav');
+  const nav = document.querySelector('body.post aside nav, body.blog .year-index nav');
   if (!nav) return;
   const entries = [...nav.querySelectorAll('a[href^="#"]')].map(link => {
     let id;
@@ -118,13 +123,20 @@ function enableActiveToc() {
   let scheduled = false;
   const update = () => {
     scheduled = false;
-    let current = entries[0];
-    for (const entry of entries) {
+    // Skip headings hidden by the tag filter.
+    const visible = entries.filter(entry => entry.heading.getClientRects().length);
+    if (!visible.length) return;
+    let current = visible[0];
+    for (const entry of visible) {
       if (entry.heading.getBoundingClientRect().top <= 80) current = entry;
       else break;
     }
     if (window.scrollY > 0 && window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2) {
-      current = entries[entries.length - 1];
+      // At the bottom, keep a clicked entry that is on screen instead of jumping to the last one.
+      let hash;
+      try { hash = decodeURIComponent(location.hash.slice(1)); } catch { hash = location.hash.slice(1); }
+      const target = visible.find(entry => entry.heading.id === hash);
+      current = target && target.heading.getBoundingClientRect().top < window.innerHeight ? target : visible[visible.length - 1];
     }
     if (active === current) return;
     active?.link.removeAttribute('aria-current');
@@ -142,6 +154,7 @@ function enableActiveToc() {
   window.addEventListener('scroll', schedule, { passive: true });
   window.addEventListener('resize', schedule);
   window.addEventListener('hashchange', schedule);
+  window.addEventListener('popstate', schedule);
   window.addEventListener('load', schedule);
   document.fonts.ready.then(schedule);
   update();
@@ -272,6 +285,9 @@ if (document.body.classList.contains('post')) {
   enableOutdateAlert();
   addBackToTopBtn();
   enableTocTooltip();
+  enableActiveToc();
+}
+if (document.body.classList.contains('blog')) {
   enableActiveToc();
 }
 if (document.querySelector('.prose')) {

@@ -1474,7 +1474,7 @@ template {
   a span { display: block; font-size: 0.85em; color: var(--text-pale-color); margin-top: 4px; }
 }
 
-/* Design: index — year-grouped title list, monochrome, no decoration. */
+/* Design: index — year-grouped title list with a year index on the right, monochrome, no decoration. */
 [hidden] { display: none !important; }
 body { margin: 0; }
 .visually-hidden {
@@ -1486,7 +1486,26 @@ body { margin: 0; }
   white-space: nowrap;
 }
 
-$year-col: 5.5rem;
+$index-top: 168px;
+
+/* Right-side index: post headings and home years share one look. */
+%side-index {
+  font-size: 0.8125em;
+  nav { padding: 0 1em 0 3em; background: none; }
+  ul { list-style: none; margin: 0; padding: 0; line-height: 2.1; }
+  a {
+    display: block;
+    padding: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-pale-color);
+    text-decoration: none;
+    &.h3 { margin-left: 1em; padding: 0; border-left: 0; }
+    &[aria-current="location"] { color: var(--text-color); font-weight: 400; }
+    &:hover { color: var(--text-color); }
+  }
+}
 
 /* header */
 .site-header {
@@ -1525,19 +1544,17 @@ $year-col: 5.5rem;
 
 /* list */
 body.blog main.blog-main { margin: 0; padding: 0 24px; }
-.year-group { display: flex; padding-bottom: 40px; }
+.year-group { padding-bottom: 44px; }
 .year-group:not(:has(.post-entry:not([hidden]))) { display: none; }
 .year {
-  flex: 0 0 $year-col;
-  margin: 0;
-  padding: 6px 0;
-  font-size: 0.875em;
+  margin: 0 0 6px;
+  font-size: 0.8125em;
   font-weight: 400;
   line-height: 1.8;
   color: var(--text-pale-color);
   font-variant-numeric: tabular-nums;
+  scroll-margin-top: 32px;
 }
-.year-posts { flex: 1; min-width: 0; }
 .post-entry {
   display: flex;
   align-items: baseline;
@@ -1575,12 +1592,12 @@ body.blog main.blog-main { margin: 0; padding: 0 24px; }
   display: flex;
   align-items: baseline;
   gap: 16px;
-  margin: 0 0 28px $year-col;
+  margin: 0 0 32px;
   font-size: 0.875em;
   color: var(--text-color);
   a { color: var(--text-pale-color); text-underline-offset: 3px; &:hover { color: var(--text-color); } }
 }
-.empty-posts { margin: 0 0 0 $year-col; padding: 6px 0 48px; color: var(--text-pale-color); }
+.empty-posts { margin: 0; padding: 6px 0 48px; color: var(--text-pale-color); }
 
 /* post */
 body.post main { justify-content: flex-start; }
@@ -1619,20 +1636,22 @@ body.post .prose {
   .zola-anchor { color: var(--text-decoration-color); border: 0; }
 }
 
-/* table of contents */
+/* right-side index */
 body.post aside {
-  top: 168px;
-  font-size: 0.8125em;
-  nav { padding: 0 1em 0 3em; background: none; }
-  ul { line-height: 2.1; }
-  a {
-    padding: 0;
-    color: var(--text-pale-color);
-    &.h3 { margin-left: 1em; padding: 0; border-left: 0; }
-    &[aria-current="location"] { color: var(--text-color); font-weight: 400; }
-    &:hover { color: var(--text-color); }
-  }
+  @extend %side-index;
+  top: $index-top;
   #back-to-top { margin-left: 2.25em; &:hover { color: var(--text-color); } }
+}
+body.blog .year-index {
+  @extend %side-index;
+  position: fixed;
+  top: $index-top - 6px; // centers the first year on the list's first year heading
+  right: 0;
+  width: calc((100% - var(--main-max-width)) / 2);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 1024px) {
+  body.blog .year-index { display: none; }
 }
 
 /* footer */
@@ -1643,11 +1662,9 @@ footer .right #markdown-btn:hover { color: var(--text-color); }
   .site-header { padding: 32px 20px 48px; }
   body.blog main.blog-main { padding: 0 20px; }
   body.post article.prose { padding: 0 20px 40px; }
-  .year-group { flex-direction: column; padding-bottom: 32px; }
-  .year { flex-basis: auto; padding: 0 0 4px; }
+  .year-group { padding-bottom: 36px; }
   .post-entry { flex-wrap: wrap; row-gap: 0; }
   .post-entry h3 { flex: 1 1 0; }
   .post-entry time { order: 2; }
   .post-entry .post-tags { order: 3; flex-basis: 100%; }
-  .active-tag, .empty-posts { margin-left: 0; }
 }
