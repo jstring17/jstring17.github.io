@@ -1519,8 +1519,10 @@ $index-top: 168px;
     margin: 0;
     padding: 0;
     color: var(--text-color);
-    font-weight: 600;
-    letter-spacing: -0.01em;
+    font-size: 1.25em;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.025em;
     text-decoration: none;
     &:hover { color: var(--text-color); }
   }
@@ -1560,9 +1562,9 @@ body.blog main.blog-main { margin: 0; padding: 0 24px; }
   align-items: baseline;
   gap: 14px;
   padding: 6px 0;
-  h3 { margin: 0; font-size: 1em; font-weight: 500; line-height: 1.6; min-width: 0; }
+  h3 { margin: 0; font-size: 1em; font-weight: 400; line-height: 1.6; min-width: 0; }
   h3 a {
-    color: var(--text-color);
+    color: var(--title-color);
     text-decoration: none;
     text-underline-offset: 4px;
     text-decoration-thickness: 1px;
@@ -1575,6 +1577,26 @@ body.blog main.blog-main { margin: 0; padding: 0 24px; }
     font-size: 0.875em;
     color: var(--text-pale-color);
     font-variant-numeric: tabular-nums;
+  }
+}
+/* Title hover: underline, plus one band of light sweeping across the letters. */
+@keyframes title-shine {
+  from { background-position: 100% 0; }
+  to { background-position: 0 0; }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .post-entry h3 a:hover {
+    // The band starts and ends fully off the text at any title length.
+    background-image: linear-gradient(110deg,
+      var(--title-color) calc(50% - 36px),
+      var(--shine-color) 50%,
+      var(--title-color) calc(50% + 36px));
+    background-size: calc(200% + 144px) 100%;
+    background-repeat: no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: title-shine 0.9s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 .post-tags { display: flex; flex-wrap: wrap; gap: 10px; }
