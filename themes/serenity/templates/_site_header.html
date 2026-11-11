@@ -1,7 +1,14 @@
 <header class="site-header">
   <a class="site-name" href="{{ get_url(path='/') }}">{{ config.extra.name }}</a>
-  <button id="theme-toggle" type="button" aria-label="Switch color theme" title="Switch color theme">
-    <span class="moon-icon">{{ load_data(path="icon/moon.svg") | safe }}</span>
-    <span class="sun-icon">{{ load_data(path="icon/sun.svg") | safe }}</span>
-  </button>
+  <div class="site-actions">
+    {% if config.build_search_index %}
+    <button id="search-button" type="button" aria-label="Search posts" aria-haspopup="dialog" aria-controls="search-dialog" title="Search (/)" aria-keyshortcuts="/">
+      {{ load_data(path="icon/search.svg") | safe }}
+    </button>
+    {% endif %}
+    <button id="theme-toggle" type="button" aria-label="Switch color theme" title="Switch color theme">
+      <span class="moon-icon">{{ load_data(path="icon/moon.svg") | safe }}</span>
+      <span class="sun-icon">{{ load_data(path="icon/sun.svg") | safe }}</span>
+    </button>
+  </div>
 </header>

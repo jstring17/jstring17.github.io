@@ -10,36 +10,33 @@
 <div id="wrapper">
   {% include "_site_header.html" %}
   <main class="blog-main">
-    <div class="section-title">
-      <div class="blog-heading">
-        <h1>Blog</h1>
-        {% if config.build_search_index %}
-        <button id="search-button" type="button" aria-label="Search posts" aria-haspopup="dialog" aria-controls="search-dialog" title="Search (/)" aria-keyshortcuts="/">
-          {{ load_data(path="icon/search.svg") | safe }}
-        </button>
-        {% endif %}
-      </div>
-    </div>
+    <h1 class="visually-hidden">Blog</h1>
     <div id="active-tag" class="active-tag" hidden>
       <span id="filter-status" role="status" aria-live="polite"></span>
       <a href="{{ get_url(path='/') }}">All posts</a>
     </div>
     <div class="blog-posts">
+      {% set_global year = 0 %}
       {% for post in blog.pages %}
-      <article class="post-entry" data-tags="{{ post.taxonomies.tags | default(value=[]) | join(sep=',') }}">
-        <div class="post-entry-heading">
-          <h2><a class="instant" href="{{ post.permalink }}">{{ post.title }}</a></h2>
-          <time datetime="{{ post.date }}">{{ post.date | date(format='%b %-d, %Y') }}</time>
-        </div>
-        {% if post.description %}<p>{{ post.description }}</p>{% endif %}
-        {% if post.taxonomies.tags %}
-        <div class="post-tags" aria-label="Post tags">
-          {% for tag in post.taxonomies.tags | default(value=[]) %}
-          <a href="{{ get_url(path='/') }}?tag={{ tag }}">{{ tag }}</a>
-          {% endfor %}
-        </div>
-        {% endif %}
-      </article>
+      {% if post.year != year %}
+      {% if not loop.first %}</div></section>{% endif %}
+      <section class="year-group">
+        <h2 class="year">{{ post.year }}</h2>
+        <div class="year-posts">
+      {% set_global year = post.year %}
+      {% endif %}
+          <article class="post-entry" data-tags="{{ post.taxonomies.tags | default(value=[]) | join(sep=',') }}">
+            <h3><a class="instant" href="{{ post.permalink }}">{{ post.title }}</a></h3>
+            {% if post.taxonomies.tags %}
+            <div class="post-tags" aria-label="Post tags">
+              {% for tag in post.taxonomies.tags | default(value=[]) %}
+              <a href="{{ get_url(path='/') }}?tag={{ tag }}">{{ tag }}</a>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <time datetime="{{ post.date }}">{{ post.date | date(format='%b %-d') }}</time>
+          </article>
+      {% if loop.last %}</div></section>{% endif %}
       {% endfor %}
     </div>
     <p id="empty-posts" class="empty-posts" {% if blog.pages | length > 0 %}hidden{% endif %}>No posts yet.</p>

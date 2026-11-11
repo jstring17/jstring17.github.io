@@ -1474,120 +1474,180 @@ template {
   a span { display: block; font-size: 0.85em; color: var(--text-pale-color); margin-top: 4px; }
 }
 
-/* Johyun Park: shared reading layout and tag navigation. */
+/* Design: index — year-grouped title list, monochrome, no decoration. */
 [hidden] { display: none !important; }
 body { margin: 0; }
-body.blog #wrapper, body.post main { max-width: 800px; }
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+$year-col: 5.5rem;
+
+/* header */
 .site-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding: 48px 24px 40px;
+  gap: 16px;
+  padding: 56px 24px 72px;
   font-size: 1em;
   .site-name {
-    padding: 0;
     margin: 0;
+    padding: 0;
     color: var(--text-color);
-    font-size: 1.35em;
-    font-weight: 700;
-    letter-spacing: -0.035em;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     text-decoration: none;
+    &:hover { color: var(--text-color); }
   }
+  .site-actions { display: flex; align-items: center; gap: 2px; margin-right: -9px; }
+  #search-button,
   #theme-toggle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-    width: 40px;
-    height: 40px;
-    padding: 8px;
-    border: 1px solid var(--block-border-color);
-    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
     background: transparent;
-    color: var(--text-color);
+    color: var(--text-pale-color);
     cursor: pointer;
-    svg { display: block; width: 20px; height: 20px; }
-    &:hover { background: var(--block-bg-color); }
+    svg { display: block; width: 18px; height: 18px; }
+    &:hover { color: var(--text-color); }
   }
 }
+
+/* list */
 body.blog main.blog-main { margin: 0; padding: 0 24px; }
-body.blog .section-title { padding: 0; }
-body.blog .blog-heading { margin: 0 0 24px; font-size: 1em; align-items: center; }
-body.blog .blog-heading #search-button {
-  align-self: center;
-  justify-content: center;
-  width: 40px;
-  height: 36px;
-  margin-top: 0;
+.year-group { display: flex; padding-bottom: 40px; }
+.year-group:not(:has(.post-entry:not([hidden]))) { display: none; }
+.year {
+  flex: 0 0 $year-col;
+  margin: 0;
+  padding: 6px 0;
+  font-size: 0.875em;
+  font-weight: 400;
+  line-height: 1.8;
   color: var(--text-pale-color);
-  cursor: pointer;
-  svg { width: 18px; height: 18px; }
-  &:hover { color: var(--text-color); }
+  font-variant-numeric: tabular-nums;
 }
-body.blog .section-title h1, body.post article.prose > h1 {
-  font-size: 1.65em;
-  letter-spacing: -0.035em;
-  line-height: 1.35;
-  margin: 0 0 24px;
-}
-body.post main { justify-content: flex-start; }
-body.blog .section-title .blog-heading h1 { margin: 0; }
-body.post article.prose { padding: 0 24px 40px; }
-body.post article #post-info {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 0;
-  #tags { order: -1; margin: 0; gap: 8px; }
-  #date { margin: 0; font-size: 0.9em; }
-}
-body.post article.prose > hr.post-divider {
-  border: 0;
-  height: 1px;
-  background: var(--block-border-color);
-  opacity: 1;
-  margin: 24px 0 32px;
-}
+.year-posts { flex: 1; min-width: 0; }
 .post-entry {
-  padding: 24px 0;
-  border-top: 1px solid var(--block-border-color);
-  .post-entry-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
-  h2 { margin: 0; font-size: 1.05em; line-height: 1.5; }
-  h2 a { color: var(--text-color); text-decoration: none; &:hover { color: var(--primary-color); } }
-  time { white-space: nowrap; font-size: 0.75em; color: var(--text-pale-color); }
-  p { margin: 10px 0 14px; font-size: 0.9em; color: var(--text-pale-color); line-height: 1.7; }
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 6px 0;
+  h3 { margin: 0; font-size: 1em; font-weight: 500; line-height: 1.6; min-width: 0; }
+  h3 a {
+    color: var(--text-color);
+    text-decoration: none;
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1px;
+    &:hover { text-decoration: underline; }
+  }
+  time {
+    margin-left: auto;
+    padding-left: 16px;
+    white-space: nowrap;
+    font-size: 0.875em;
+    color: var(--text-pale-color);
+    font-variant-numeric: tabular-nums;
+  }
 }
-.post-tags { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; }
-body.post article #post-info #tags { gap: 16px; }
+.post-tags { display: flex; flex-wrap: wrap; gap: 10px; }
 .post-tags a, body.post article #tags a {
-  color: var(--text-pale-color);
-  background: none;
-  border: 0;
-  border-radius: 0;
   padding: 0;
+  border: 0;
+  background: none;
   font-size: 12px;
-  line-height: 1.75;
+  line-height: 1.6;
+  color: var(--text-pale-color);
   text-decoration: none;
-  transition: color 120ms ease;
   &:hover { color: var(--text-color); border: 0; }
 }
 .active-tag {
   display: flex;
   align-items: baseline;
   gap: 16px;
-  margin: -4px 0 24px;
-  font-size: 0.8em;
-  color: var(--text-pale-color);
-  a { color: inherit; text-underline-offset: 3px; &:hover { color: var(--text-color); } }
+  margin: 0 0 28px $year-col;
+  font-size: 0.875em;
+  color: var(--text-color);
+  a { color: var(--text-pale-color); text-underline-offset: 3px; &:hover { color: var(--text-color); } }
+}
+.empty-posts { margin: 0 0 0 $year-col; padding: 6px 0 48px; color: var(--text-pale-color); }
+
+/* post */
+body.post main { justify-content: flex-start; }
+body.post article.prose { padding: 0 24px 56px; }
+body.post article.prose > h1 {
+  width: auto;
+  margin: 0 0 10px;
+  font-size: 1.75em;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+body.post article #post-info {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 48px;
+  font-size: 0.875em;
+  #date { margin: 0; color: var(--text-pale-color); #publish, #updated { margin-right: 0; } }
+  #tags { margin: 0; gap: 10px; }
+}
+body.post .prose {
+  h2 { margin: 2.75em 0 0.75em; font-size: 1.125em; font-weight: 650; letter-spacing: -0.01em; }
+  h3 { margin: 2.25em 0 0.5em; font-size: 1em; font-weight: 650; }
+  p { margin: 1.1em 0; }
+  a:not(.zola-anchor) {
+    border-bottom: 0;
+    color: var(--text-color);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--text-decoration-color);
+    &:hover { opacity: 1; text-decoration-color: currentColor; }
+  }
+  .zola-anchor { color: var(--text-decoration-color); border: 0; }
 }
 
-.empty-posts { color: var(--text-pale-color); padding: 24px 0 48px; }
-body.blog footer, body.post footer { padding: 32px 24px 16px; }
-body.dark { --text-pale-color: #a0a8b6; }
+/* table of contents */
+body.post aside {
+  top: 168px;
+  font-size: 0.8125em;
+  nav { padding: 0 1em 0 3em; background: none; }
+  ul { line-height: 2.1; }
+  a {
+    padding: 0;
+    color: var(--text-pale-color);
+    &.h3 { margin-left: 1em; padding: 0; border-left: 0; }
+    &[aria-current="location"] { color: var(--text-color); font-weight: 400; }
+    &:hover { color: var(--text-color); }
+  }
+  #back-to-top { margin-left: 2.25em; &:hover { color: var(--text-color); } }
+}
+
+/* footer */
+body.blog footer, body.post footer { padding: 56px 24px 24px; font-size: 0.8125em; }
+footer .right #markdown-btn:hover { color: var(--text-color); }
+
 @media (max-width: 600px) {
-  .site-header { padding: 28px 20px 32px; }
+  .site-header { padding: 32px 20px 48px; }
   body.blog main.blog-main { padding: 0 20px; }
-  body.post article.prose { padding: 0 20px 32px; }
-  .post-entry .post-entry-heading { flex-direction: column; gap: 5px; }
+  body.post article.prose { padding: 0 20px 40px; }
+  .year-group { flex-direction: column; padding-bottom: 32px; }
+  .year { flex-basis: auto; padding: 0 0 4px; }
+  .post-entry { flex-wrap: wrap; row-gap: 0; }
+  .post-entry h3 { flex: 1 1 0; }
+  .post-entry time { order: 2; }
+  .post-entry .post-tags { order: 3; flex-basis: 100%; }
+  .active-tag, .empty-posts { margin-left: 0; }
 }

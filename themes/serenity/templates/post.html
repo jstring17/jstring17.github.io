@@ -96,7 +96,6 @@
           {% endif %}
         </div>
 
-        <hr class="post-divider">
 
         {% set show_outdated_alert = page.extra.outdated_alert if page.extra.outdated_alert is defined else (section.extra.outdated_alert if section.extra.outdated_alert is defined else (config.extra.outdated_alert if config.extra.outdated_alert is defined else false)) %}
         {% set outdated_alert_days = page.extra.outdated_alert_days if page.extra.outdated_alert_days is defined else (section.extra.outdated_alert_days if section.extra.outdated_alert_days is defined else (config.extra.outdated_alert_days if config.extra.outdated_alert_days is defined else 120)) %}
