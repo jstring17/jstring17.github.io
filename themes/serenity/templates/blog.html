@@ -27,8 +27,9 @@
   <main class="blog-main">
     <h1 class="visually-hidden">Blog</h1>
     <div id="active-tag" class="active-tag" hidden>
-      <span id="filter-status" role="status" aria-live="polite"></span>
-      <a href="{{ get_url(path='/') }}">All posts</a>
+      <span id="filter-status" class="visually-hidden" role="status" aria-live="polite"></span>
+      <span id="active-tags" class="active-tags"></span>
+      <a id="clear-tags" href="{{ get_url(path='/') }}">All posts</a>
     </div>
     <div class="blog-posts">
       {% set_global year = 0 %}

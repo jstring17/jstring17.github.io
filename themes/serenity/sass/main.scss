@@ -1491,7 +1491,20 @@ $index-top: 168px;
 /* Right-side index: post headings and home years share one look. */
 %side-index {
   font-size: 0.8125em;
-  nav { padding: 0 1em 0 3em; background: none; }
+  nav { position: relative; padding: 0 1em 0 3em; background: none; }
+  // Thin line beside the current entry; main.js moves it with translateY.
+  .toc-marker {
+    position: absolute;
+    top: 0;
+    left: calc(3em - 10px);
+    width: 1px;
+    height: 1em;
+    background: var(--text-color);
+    opacity: 0;
+    pointer-events: none;
+    &.is-shown { opacity: 1; }
+    &.is-ready { transition: transform 0.25s cubic-bezier(0.2, 0.6, 0.3, 1), opacity 0.2s ease; }
+  }
   ul { list-style: none; margin: 0; padding: 0; line-height: 2.1; }
   a {
     display: block;
@@ -1618,8 +1631,13 @@ $shine-positions: ();
   line-height: 1.6;
   color: var(--text-pale-color);
   text-decoration: none;
-  &:hover { color: var(--text-color); border: 0; }
+  &:hover, &:focus-visible { color: var(--text-color); border: 0; }
 }
+/* Tag preview: hovering a tag dims posts (and years) without it; main.js sets .is-muted. */
+.post-entry, .year, .year-index a { transition: opacity 0.2s ease; }
+.post-entry.is-muted,
+.year-group:not(:has(.post-entry:not([hidden]):not(.is-muted))) .year,
+.year-index li.is-muted a { opacity: 0.3; }
 .active-tag {
   display: flex;
   align-items: baseline;
@@ -1629,13 +1647,21 @@ $shine-positions: ();
   color: var(--text-color);
   a { color: var(--text-pale-color); text-underline-offset: 3px; &:hover { color: var(--text-color); } }
 }
+/* Selected tags: darker in the list; in the filter row, each one removes itself on click. */
+.post-tags a.is-selected { color: var(--text-color); }
+.active-tags { display: contents; }
+.active-tag .active-tags a {
+  color: var(--text-color);
+  text-decoration: none;
+  &:hover, &:focus-visible { text-decoration: line-through; text-decoration-thickness: 1px; }
+}
 .empty-posts { margin: 0; padding: 6px 0 48px; color: var(--text-pale-color); }
 
 /* post */
 body.post main { justify-content: flex-start; }
 body.post article.prose { padding: 0 24px 56px; }
 body.post article.prose > h1 {
-  width: auto;
+  width: fit-content; // the heading box hugs its text so the title morph keeps its shape
   margin: 0 0 10px;
   font-size: 1.75em;
   font-weight: 650;
@@ -1684,6 +1710,24 @@ body.blog .year-index {
 }
 @media (max-width: 1024px) {
   body.blog .year-index { display: none; }
+}
+
+/* Page transitions (View Transitions API): the clicked list title and the post h1 share the
+   name post-title, so the title morphs into the heading; the header stays put and the rest
+   cross-fades. Same-document tag filtering reuses the group timing below. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+}
+.site-header { view-transition-name: site-header; }
+body.post article.prose > h1 { view-transition-name: post-title; }
+::view-transition-group(*) {
+  animation-duration: 0.32s;
+  animation-timing-function: cubic-bezier(0.2, 0.6, 0.3, 1);
+}
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: 0.2s; }
+@media (prefers-reduced-motion: reduce) {
+  .toc-marker.is-ready { transition: none; }
 }
 
 /* footer */
