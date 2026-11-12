@@ -5,3 +5,6 @@ public/
 
 # Zola-generated image cache
 /static/processed_images/
+
+# Local guide for coding agents; kept on each computer, not in the repository
+AGENTS.md
