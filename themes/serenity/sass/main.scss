@@ -1625,13 +1625,14 @@ $index-top: 168px;
 
 /* header */
 .site-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  column-gap: 16px;
   padding: 56px 24px 72px;
   font-size: 1em;
   .site-name {
+    justify-self: start;
     margin: 0;
     padding: 0;
     color: var(--text-color);
@@ -1658,6 +1659,26 @@ $index-top: 168px;
     svg { display: block; width: 18px; height: 18px; }
     &:hover { color: var(--text-color); }
   }
+  // Half-filled circle that turns half a turn per click; main.js counts the turns in --turn.
+  .theme-icon {
+    display: block;
+    rotate: calc(var(--turn, 0) * 180deg);
+    transition: rotate 0.45s cubic-bezier(0.3, 0.7, 0.2, 1);
+  }
+  // The home tagline sits under the name row. The header gives the same 24px back at the
+  // bottom, so the list and the year index lined up with it do not move.
+  .site-tagline {
+    grid-column: 1 / -1;
+    margin: 4px 0 0;
+    font-size: 0.875em;
+    line-height: 20px;
+    color: var(--text-pale-color);
+  }
+  &:has(.site-tagline) { padding-bottom: 48px; }
+}
+body.dark .site-header #theme-toggle { --turn: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .site-header .theme-icon { transition: none; }
 }
 
 /* list */
@@ -1833,12 +1854,50 @@ body.post article.prose > h1 { view-transition-name: post-title; }
   .toc-marker.is-ready { transition: none; }
 }
 
+/* Theme switch: a circle spreads from the button, and inside it the page is already in the
+   new theme. One view transition covers a burst of clicks. Its old snapshot keeps the theme
+   from before the burst and the live page shows the other one. Each click adds a growing
+   circle as a mask layer on the live page; XOR-ing the layers shows the live page wherever an
+   odd number of circles has passed, so quick clicks spread as alternating rings. main.js sets
+   --theme-x/y and animates --theme-ring-N. */
+$theme-rings: 8; // keep in step with RINGS in main.js
+$theme-masks: ();
+@for $i from 0 to $theme-rings {
+  $theme-masks: append($theme-masks,
+    radial-gradient(circle at var(--theme-x) var(--theme-y),
+      #000 max(0px, calc(var(--theme-ring-#{$i}) - 1px)), transparent var(--theme-ring-#{$i})),
+    comma);
+}
+html.theme-switching {
+  // Rapid clicks land on <html> during the burst; they must not start a text selection.
+  -webkit-user-select: none;
+  user-select: none;
+  &::view-transition-old(root),
+  &::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+  &::view-transition-new(root) {
+    -webkit-mask-image: $theme-masks;
+    mask-image: $theme-masks;
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+  // Every other name would fade on its own instead of following the rings. The button keeps
+  // one so its live turn stays visible on top; when the theme under it is the old one, its
+  // colours are inverted to match (the toggle greys are near-inverses of each other).
+  * { view-transition-name: none !important; }
+  #theme-toggle { view-transition-name: theme-toggle !important; }
+  &::view-transition-group(theme-toggle),
+  &::view-transition-new(theme-toggle) { animation: none; }
+  &::view-transition-old(theme-toggle) { display: none; }
+  &.theme-flip::view-transition-new(theme-toggle) { filter: invert(1); }
+}
+
 /* footer */
 body.blog footer, body.post footer { padding: 56px 24px 24px; font-size: 0.8125em; }
 footer .right #markdown-btn:hover { color: var(--text-color); }
 
 @media (max-width: 600px) {
   .site-header { padding: 32px 20px 48px; }
+  .site-header:has(.site-tagline) { padding-bottom: 36px; }
   body.blog main.blog-main { padding: 0 20px; }
   body.post article.prose { padding: 0 20px 40px; }
   .year-group { padding-bottom: 36px; }

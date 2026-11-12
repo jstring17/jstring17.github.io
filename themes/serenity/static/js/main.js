@@ -1,26 +1,146 @@
 function enableThemeToggle() {
   const toggle = document.querySelector('#theme-toggle');
   if (!toggle) return;
+  const root = document.documentElement;
   const hl = document.querySelector('link#hl');
   const preference = window.matchMedia('(prefers-color-scheme: dark)');
+  const motion = window.matchMedia('(prefers-reduced-motion: no-preference)');
   let saved;
   try { saved = localStorage.getItem('theme'); } catch {}
-  function apply(theme) {
-    document.body.classList.toggle('dark', theme === 'dark');
-    if (hl) hl.href = hl.dataset[theme];
-    const label = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
-    toggle.setAttribute('aria-label', label);
-    toggle.title = label;
+  // theme is the visitor's choice; while rings spread, the page catches up with it.
+  let theme = saved || (preference.matches ? 'dark' : 'light');
+  let turn = theme === 'dark' ? 1 : 0;
+  const other = value => value === 'dark' ? 'light' : 'dark';
+  function paint(value) {
+    document.body.classList.toggle('dark', value === 'dark');
+    if (hl) hl.href = hl.dataset[value];
   }
-  toggle.addEventListener('click', () => {
-    saved = document.body.classList.contains('dark') ? 'light' : 'dark';
+  function label() {
+    const text = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+    toggle.setAttribute('aria-label', text);
+    toggle.title = text;
+  }
+  // The icon keeps turning the same way: one half turn per change.
+  function choose(value) {
+    theme = value;
+    turn += 1;
+    toggle.style.setProperty('--turn', turn);
+    label();
+  }
+
+  // Circle reveal (see "Theme switch" in main.scss). A burst is one view transition: its old
+  // snapshot is the theme from before the first click, the live page the other theme, and each
+  // click adds a ring that grows from the button to the farthest corner.
+  const RINGS = 8; // keep in step with $theme-rings in main.scss
+  const SPREAD = 700;
+  const EASE = 'cubic-bezier(0.25, 0.6, 0.3, 1)';
+  const ringName = i => `--theme-ring-${i}`;
+  const canSpread = Boolean(document.startViewTransition && window.CSS?.registerProperty);
+  if (canSpread) {
+    for (let i = 0; i < RINGS; i++) {
+      try { CSS.registerProperty({ name: ringName(i), syntax: '<length>', inherits: false, initialValue: '0px' }); } catch {}
+    }
+  }
+  let burst = null;
+
+  function start() {
+    const box = toggle.getBoundingClientRect();
+    const x = box.left + box.width / 2;
+    const y = box.top + box.height / 2;
+    const from = document.body.classList.contains('dark') ? 'dark' : 'light';
+    const b = {
+      from,
+      box,
+      radius: Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) + 2,
+      rings: new Array(RINGS).fill(null),
+      full: -1, // the one ring that already covers the page, if any
+      waiting: 0, // clicks that came before the transition was ready
+      ready: false,
+      hold: null,
+    };
+    burst = b;
+    root.style.setProperty('--theme-x', `${x}px`);
+    root.style.setProperty('--theme-y', `${y}px`);
+    root.classList.add('theme-switching');
+    b.transition = document.startViewTransition(() => paint(other(from)));
+    b.transition.ready.then(() => {
+      b.ready = true;
+      launch(b);
+    }, () => {});
+    b.transition.finished.finally(() => {
+      // However the transition ended (all rings landed, or another transition cut in),
+      // the page now simply shows the chosen theme.
+      if (burst === b) burst = null;
+      paint(theme);
+      b.rings.forEach(ring => ring?.cancel());
+      b.hold?.cancel();
+      if (!burst) root.classList.remove('theme-switching', 'theme-flip');
+    });
+  }
+  function launch(b) {
+    for (; b.waiting > 0; b.waiting--) {
+      const slot = b.rings.indexOf(null);
+      const ring = root.animate({ [ringName(slot)]: ['0px', `${b.radius}px`] },
+        { duration: SPREAD, easing: EASE, fill: 'forwards', pseudoElement: '::view-transition-new(root)' });
+      b.rings[slot] = ring;
+      ring.finished.then(() => land(b, slot), () => {});
+    }
+    // Keeps the transition open a little past the newest ring so land() can end it cleanly.
+    b.hold?.cancel();
+    b.hold = root.animate({ opacity: [1, 1] }, { duration: SPREAD + 300, pseudoElement: '::view-transition' });
+  }
+  function land(b, slot) {
+    if (b.full < 0) {
+      b.full = slot;
+    } else {
+      // Two rings that both cover the page cancel out, which frees their slots.
+      b.rings[b.full].cancel();
+      b.rings[slot].cancel();
+      b.rings[b.full] = b.rings[slot] = null;
+      b.full = -1;
+    }
+    if (b.waiting || b.rings.some((ring, i) => ring && i !== b.full)) return;
+    // Every ring has landed, so the screen already shows the chosen theme everywhere; matching
+    // the live page to it is invisible, and the transition can end.
+    paint(theme);
+    b.transition.skipTransition();
+  }
+
+  function press() {
+    const spread = canSpread && motion.matches;
+    // A full burst ignores further clicks until a ring lands.
+    if (spread && burst && burst.rings.filter(Boolean).length + burst.waiting >= RINGS) return;
+    choose(other(theme));
+    saved = theme;
     try { localStorage.setItem('theme', saved); } catch {}
-    apply(saved);
-  });
+    if (!spread) { paint(theme); return; }
+    if (!burst) start();
+    burst.waiting += 1;
+    if (burst.ready) launch(burst);
+    // The button follows the centre ring, which shows the old theme on every second click.
+    root.classList.toggle('theme-flip', theme === burst.from);
+  }
+  toggle.addEventListener('click', press);
+  // Quick double and triple clicks should not select text next to the button.
+  toggle.addEventListener('mousedown', event => { if (event.detail > 1) event.preventDefault(); });
+  // While a view transition runs, Chrome sends pointer events to <html> instead of the element
+  // under the pointer, so presses on the button's spot during a burst are handled here, and
+  // their default (selecting the nearby tagline on a double or triple click) is cancelled.
+  const onButton = event => {
+    if (!burst || event.target !== root) return false;
+    const { left, right, top, bottom } = burst.box;
+    return event.clientX >= left && event.clientX <= right && event.clientY >= top && event.clientY <= bottom;
+  };
+  document.addEventListener('mousedown', event => { if (onButton(event)) event.preventDefault(); });
+  document.addEventListener('click', event => { if (onButton(event)) press(); });
   preference.addEventListener('change', event => {
-    if (!saved) apply(event.matches ? 'dark' : 'light');
+    if (saved) return;
+    choose(event.matches ? 'dark' : 'light');
+    if (!burst) paint(theme);
   });
-  apply(saved || (preference.matches ? 'dark' : 'light'));
+  toggle.style.setProperty('--turn', turn);
+  label();
+  paint(theme);
 }
 
 function enableTagFilters() {

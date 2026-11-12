@@ -33,7 +33,7 @@ updated = 2026-10-11           # Optional update date
 draft = false                # true: hide from production builds
 
 [taxonomies]
-tags = ["AI", "Research"]    # AI, Bio, Market, Research
+tags = ["AI", "Paper"]       # 1-2 of AI, Bio, Chem + 1 of Landscape, Paper, Company
 categories = ["Guide"]       # Group with section extra.categorized = true
 
 [extra]

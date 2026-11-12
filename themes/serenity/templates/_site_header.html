@@ -7,8 +7,11 @@
     </button>
     {% endif %}
     <button id="theme-toggle" type="button" aria-label="Switch color theme" title="Switch color theme">
-      <span class="moon-icon">{{ load_data(path="icon/moon.svg") | safe }}</span>
-      <span class="sun-icon">{{ load_data(path="icon/sun.svg") | safe }}</span>
+      <span class="theme-icon">{{ load_data(path="icon/theme.svg") | safe }}</span>
     </button>
   </div>
+  {# The home page says what the blog is about; posts keep the header to one line. #}
+  {% if page is not defined and config.description %}
+  <p class="site-tagline">{{ config.description }}</p>
+  {% endif %}
 </header>

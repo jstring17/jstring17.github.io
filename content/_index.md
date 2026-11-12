@@ -1,6 +1,6 @@
 +++
 title = "Blog"
-description = "Notes on AI, Bio, Market, and Research by Johyun Park."
+description = "Notes and studies on AI, Bio, and Chem"
 template = "blog.html"
 
 [extra]
