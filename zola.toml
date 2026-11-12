@@ -1,6 +1,6 @@
 #:tombi schema.strict = false
 
-base_url = "https://johyun.github.io"
+base_url = "https://jstring17.github.io"
 title = "Johyun Park"
 description = "Notes and studies on AI, Bio, and Chem"
 default_language = "en"

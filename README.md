@@ -1,13 +1,19 @@
 # Johyun Park's blog
 
+Notes and studies on AI, Bio, and Chem, published at https://jstring17.github.io.
+
 Built with Zola and a local copy of the Serenity theme in `themes/serenity`.
 Theme changes are committed together with the blog.
 
 Theme source: https://github.com/Smileyhojin/serenity
 Imported from commit `855fb2322ffee598523b19422798dce10a221d41`.
-The original theme and third-party licenses are preserved in the theme directory.
+The original theme and third-party licenses are preserved in the theme directory,
+and the original Git history is kept.
 
 ## Develop
+
+Install Zola 0.23.6 or newer, or use the pinned Nix development environment.
+The theme is included; no submodule setup is needed.
 
 ```sh
 # nix develop
@@ -20,62 +26,25 @@ zola serve --drafts --base-url /
 
 The home page lists posts from `content/blog/`. Create each post as
 `content/blog/my-post/index.md` and put images or scripts beside it.
-Use one or more of the four tags (case-sensitive):
+Give each post one or two fields and one type, field first (case-sensitive):
 
 ```toml
 +++
 title = "My first post"
-date = 2026-11-07
+date = 2026-11-12
 draft = true
 
 [taxonomies]
-tags = ["AI", "Research"] # AI, Bio, Market, Research
+tags = ["AI", "Paper"] # 1-2 of AI, Bio, Chem + 1 of Landscape, Paper, Company
 +++
 ```
 
-Set `draft = false` when ready to publish. Preview with `zola serve --drafts`.
-The existing Writing Guideline remains a draft and is not published.
-The name header links home; tag links filter the home list, and the header's
-theme button saves the light/dark preference in this browser.
+Set `draft = false` when ready to publish; drafts appear only with `zola serve --drafts`.
+The Writing Guideline stays a draft and is not published.
+Tag links filter the home list, and the header's theme button saves the
+light/dark preference in this browser.
 
-Original Git history and theme attribution are preserved. Current site identity
-and production URLs are configured for Johyun Park at https://johyun.github.io.
+## Deploy
 
-## Continue on another computer
-
-The private repository is https://github.com/jstring17/johyun.github.io.
-Authenticate to GitHub with an account that has access, then run:
-
-```sh
-git clone https://github.com/jstring17/johyun.github.io.git
-cd johyun.github.io
-git switch customize-blog
-```
-
-Install Zola 0.23.6 or newer (or use the pinned Nix development environment), then:
-
-```sh
-zola serve --drafts --interface 127.0.0.1 --port 1112
-```
-
-Open http://127.0.0.1:1112/. The theme is included; no submodule setup is needed.
-Read `AGENTS.md` before editing. Before starting work, run `git pull --ff-only`.
-Commit and `git push` before switching computers. Each computer needs its own GitHub
-authentication and Git author configuration; these are not copied by cloning.
-
-`customize-blog` is the default working branch. `main` and `before-customization`
-preserve the original baseline. GitHub Actions is disabled for code-only synchronization.
-No site has been deployed. Before enabling deployment, choose the actual Pages URL:
-the GitHub account is `jstring17`, while `base_url` currently uses `johyun.github.io`.
-
-Use the current GitHub identity on each computer before creating commits:
-
-```sh
-git config user.name "Johyun Park"
-git config user.email "149886130+jstring17@users.noreply.github.com"
-```
-
-These commands apply to this repository. GitHub login and commit authorship are
-separate: signing in as `jstring17` does not change the email embedded in commits.
-On 2026-11-07, the six customization commits were rewritten to this identity;
-upstream commits and the original baseline tag were preserved.
+Pushing to `main` runs `.github/workflows/pages.yml`. It checks the site with drafts,
+builds it without drafts, and deploys `public/` to GitHub Pages.
