@@ -4,11 +4,25 @@
   const input = dialog.querySelector('#search-input');
   const results = dialog.querySelector('#search-results');
   const status = dialog.querySelector('#search-status');
+  const empty = dialog.querySelector('#search-empty');
+  const RECENT = 5;
   const localPath = url => {
     const parsed = new URL(url, location.href);
     return parsed.pathname + parsed.search + parsed.hash;
   };
-  const posts = new Set([...document.querySelectorAll('[data-search-post]')].map(el => localPath(el.dataset.searchPost)));
+  // Every listed post, newest first. The empty panel shows the first few without loading the index.
+  const posts = [...document.querySelectorAll('[data-search-post]')].map(el => ({
+    url: localPath(el.dataset.searchPost),
+    title: el.dataset.title || '',
+    date: el.dataset.date || '',
+  })).sort((a, b) => b.date.localeCompare(a.date));
+  const dates = new Map(posts.map(post => [post.url, post.date]));
+  // Full date in the list's style, read as a calendar date so time zones cannot shift the day.
+  const dateFormat = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  function formatDate(value) {
+    const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+    return year && month && day ? dateFormat.format(Date.UTC(year, month - 1, day)) : value;
+  }
   const normalize = text => (text || '').normalize('NFC').toLocaleLowerCase();
   const decoder = document.createElement('textarea');
   function plainText(text) {
@@ -20,7 +34,8 @@
   }
   function appendMatches(element, text, terms) {
     const value = text.normalize('NFC');
-    const escaped = [...new Set(terms)].sort((a, b) => b.length - a.length)
+    if (!terms.length) { element.append(value); return; }
+    const escaped = [...terms].sort((a, b) => b.length - a.length)
       .map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
     const pattern = new RegExp(escaped.join('|'), 'giu');
     let end = 0;
@@ -37,6 +52,7 @@
   let index;
   let pending;
   let timer;
+  let active = -1;
 
   async function loadIndex() {
     if (index) return index;
@@ -46,92 +62,156 @@
         return response.json();
       }).then(data => {
         if (!Array.isArray(data)) throw Error('Search requires fuse_json');
-        index = data.filter(item => posts.has(localPath(item.url))).map(item => {
-          const body = plainText(item.body);
-          const description = plainText(item.description);
-          return { ...item, body, description, titleText: normalize(item.title),
-            bodyText: normalize(`${description} ${body}`) };
-        });
+        index = data.map(item => ({ ...item, url: localPath(item.url) }))
+          .filter(item => dates.has(item.url)).map(item => {
+            const text = [plainText(item.description), plainText(item.body)].filter(Boolean).join(' ');
+            return { url: item.url, title: item.title || '', date: dates.get(item.url), text,
+              titleText: normalize(item.title), bodyText: normalize(text) };
+          });
         return index;
       }).catch(error => { pending = null; throw error; });
     }
     return pending;
   }
 
+  // The input keeps focus; the selected option is announced through aria-activedescendant.
+  function select(position, scroll = true) {
+    const options = [...results.children];
+    if (!options.length) {
+      active = -1;
+      input.removeAttribute('aria-activedescendant');
+      return;
+    }
+    active = Math.max(0, Math.min(position, options.length - 1));
+    options.forEach((option, i) => option.setAttribute('aria-selected', String(i === active)));
+    input.setAttribute('aria-activedescendant', options[active].id);
+    if (scroll) options[active].scrollIntoView({ block: 'nearest' });
+  }
+
+  function option(post, i, terms) {
+    const item = document.createElement('li');
+    item.id = `search-option-${i}`;
+    item.setAttribute('role', 'option');
+    const link = document.createElement('a');
+    link.href = post.url;
+    link.tabIndex = -1;
+    const title = document.createElement('span');
+    title.className = 'search-title';
+    appendMatches(title, post.title || post.url, terms);
+    const date = document.createElement('time');
+    date.dateTime = post.date;
+    date.textContent = formatDate(post.date);
+    link.append(title, date);
+    if (post.excerpt) {
+      const excerpt = document.createElement('span');
+      excerpt.className = 'search-excerpt';
+      appendMatches(excerpt, post.excerpt, terms);
+      link.append(excerpt);
+    }
+    item.append(link);
+    return item;
+  }
+
+  function show(list, terms) {
+    results.replaceChildren(...list.map((post, i) => option(post, i, terms)));
+    input.setAttribute('aria-expanded', String(list.length > 0));
+    select(0);
+  }
+
+  // Start the excerpt a little before the first matching term; CSS trims the end.
+  function excerptFor(doc, terms) {
+    const hits = terms.map(term => doc.bodyText.indexOf(term)).filter(position => position >= 0);
+    const start = Math.max(0, (hits.length ? Math.min(...hits) : 0) - 30);
+    return (start ? '…' : '') + doc.text.slice(start, start + 200);
+  }
+
   async function search() {
     const query = input.value.trim();
-    results.replaceChildren();
-    if (!query) { status.textContent = ''; return; }
-    status.textContent = 'Searching…';
+    empty.hidden = true;
+    if (!query) {
+      results.setAttribute('aria-label', 'Recent posts');
+      status.textContent = posts.length ? 'Recent' : '';
+      show(posts.slice(0, RECENT), []);
+      return;
+    }
+    results.setAttribute('aria-label', 'Search results');
+    if (!index) status.textContent = 'Searching…';
     try {
       const documents = await loadIndex();
       if (input.value.trim() !== query || !dialog.open) return;
-      const terms = normalize(query).split(/\s+/);
-      const matches = documents.filter(doc => terms.every(term =>
-        doc.titleText.includes(term) || doc.bodyText.includes(term)
-      )).sort((a, b) => {
-        const score = doc => terms.filter(term => doc.titleText.includes(term)).length;
-        return score(b) - score(a) || (a.title || '').localeCompare(b.title || '');
-      });
-      status.textContent = matches.length === 0 ? 'No results.' : `${matches.length} result${matches.length === 1 ? '' : 's'}`;
-      for (const doc of matches) {
-        const url = new URL(doc.url, location.href);
-        if (!['https:', 'http:'].includes(url.protocol)) continue;
-        const li = document.createElement('li');
-        const link = document.createElement('a');
-        link.href = localPath(url.href);
-        const title = document.createElement('strong');
-        appendMatches(title, doc.title || url.pathname, terms);
-        const excerpt = document.createElement('span');
-        const body = (doc.body || doc.description || '').replace(/\s+/g, ' ');
-        const position = normalize(body).indexOf(terms[0]);
-        const start = Math.max(0, position - 45);
-        const snippet = (start ? '…' : '') + body.slice(start, start + 180) + (body.length > start + 180 ? '…' : '');
-        appendMatches(excerpt, snippet, terms);
-        link.append(title, excerpt);
-        li.append(link);
-        results.append(li);
+      const terms = [...new Set(normalize(query).split(/\s+/))];
+      const titleHits = doc => terms.filter(term => doc.titleText.includes(term)).length;
+      // Title matches first, then newest first.
+      const matches = documents
+        .filter(doc => terms.every(term => doc.titleText.includes(term) || doc.bodyText.includes(term)))
+        .map(doc => ({ ...doc, hits: titleHits(doc), excerpt: excerptFor(doc, terms) }))
+        .sort((a, b) => b.hits - a.hits || b.date.localeCompare(a.date));
+      show(matches, terms);
+      status.textContent = matches.length ? `${matches.length} result${matches.length === 1 ? '' : 's'}` : 'No results';
+      if (!matches.length) {
+        empty.textContent = `No posts match “${query}”.`;
+        empty.hidden = false;
       }
     } catch {
-      if (input.value.trim() === query && dialog.open) status.textContent = 'Search could not load. Type again to retry.';
+      if (input.value.trim() !== query || !dialog.open) return;
+      show([], []);
+      status.textContent = 'Search could not load. Type again to retry.';
     }
   }
 
   function open() {
     if (!dialog.open) dialog.showModal();
     input.focus();
+    input.select();
     search();
   }
-  document.querySelector('#search-button')?.addEventListener('click', open);
-  dialog.querySelector('#search-close').addEventListener('click', () => dialog.close());
+  // Closing returns focus to the opener; after Esc that shows a keyboard focus ring.
+  // Drop it when a pointer opened the panel, and keep it for keyboard users.
+  const button = document.querySelector('#search-button');
+  let pointerOpened = false;
+  function close() {
+    if (dialog.open) dialog.close();
+    if (pointerOpened && document.activeElement === button) button.blur();
+    pointerOpened = false;
+  }
+  button?.addEventListener('click', event => {
+    pointerOpened = event.detail > 0;
+    open();
+  });
+  dialog.addEventListener('close', close);
+  dialog.querySelector('#search-close').addEventListener('click', close);
   dialog.addEventListener('click', event => {
     if (event.target !== dialog) return;
     const rect = dialog.getBoundingClientRect();
-    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
+    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) close();
   });
   input.addEventListener('input', event => {
     clearTimeout(timer);
     if (!event.isComposing) timer = setTimeout(search, 100);
   });
   input.addEventListener('compositionend', () => { clearTimeout(timer); search(); });
+  results.addEventListener('pointermove', event => {
+    const item = event.target.closest('[role="option"]');
+    const position = item ? [...results.children].indexOf(item) : -1;
+    if (position >= 0 && position !== active) select(position, false);
+  });
   dialog.addEventListener('keydown', event => {
     if (event.isComposing) return;
     if (event.key === 'Escape') {
       event.preventDefault();
-      dialog.close();
+      close();
       return;
     }
-    const links = [...results.querySelectorAll('a')];
-    const current = links.indexOf(document.activeElement);
-    if (event.key === 'ArrowDown' && links.length) {
+    if (!results.children.length) return;
+    if (event.key === 'ArrowDown') {
       event.preventDefault();
-      links[Math.min(current + 1, links.length - 1)].focus();
-    } else if (event.key === 'ArrowUp' && current >= 0) {
+      select(active + 1);
+    } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      if (current === 0) input.focus(); else links[current - 1].focus();
-    } else if (event.key === 'Enter' && document.activeElement === input && links.length) {
+      select(active - 1);
+    } else if (event.key === 'Enter' && document.activeElement === input && active >= 0) {
       event.preventDefault();
-      links[0].click();
+      results.children[active].querySelector('a').click();
     }
   });
   document.addEventListener('keydown', event => {

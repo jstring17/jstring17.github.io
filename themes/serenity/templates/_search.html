@@ -1,11 +1,17 @@
-<dialog id="search-dialog" aria-labelledby="search-title" data-index="{{ get_url(path='search_index.' ~ lang ~ '.json') }}">
-  <div class="search-heading">
-    <h2 id="search-title">Search</h2>
-    <button id="search-close" type="button" aria-label="Close search">×</button>
+<dialog id="search-dialog" aria-label="Search posts" data-index="{{ get_url(path='search_index.' ~ lang ~ '.json') }}">
+  <div class="search-bar">
+    <span class="search-icon" aria-hidden="true">{{ load_data(path="icon/search.svg") | safe }}</span>
+    <input id="search-input" type="search" role="combobox" aria-label="Search posts" aria-controls="search-results" aria-expanded="false" aria-autocomplete="list" placeholder="Search posts" autocomplete="off" spellcheck="false" autofocus>
+    <button id="search-close" type="button" aria-label="Close search">esc</button>
   </div>
-  <input id="search-input" aria-label="Search blog" type="search" placeholder="Search…" autocomplete="off" spellcheck="false" autofocus>
-  <p id="search-status" role="status"></p>
-  <ul id="search-results" aria-label="Search results"></ul>
+  <div class="search-meta">
+    <p id="search-status" role="status"></p>
+    <p class="search-keys" aria-hidden="true"><span>↑↓</span> move <span>↵</span> open</p>
+  </div>
+  <div class="search-body">
+    <ul id="search-results" role="listbox" aria-label="Search results"></ul>
+    <p id="search-empty" class="search-empty" hidden></p>
+  </div>
 </dialog>
 <div id="search-posts" hidden>
   {% set blog_path = config.extra.blog_section_path | trim_start(pat="/") | trim_end(pat="/") %}
