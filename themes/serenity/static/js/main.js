@@ -147,7 +147,8 @@ function enableTagFilters() {
   const context = document.querySelector('#active-tag');
   if (!context) return;
   const posts = [...document.querySelectorAll('.post-entry')];
-  const tagLinks = [...document.querySelectorAll('.post-tags a')];
+  // Field names in the home tagline work like tag links.
+  const tagLinks = [...document.querySelectorAll('.post-tags a, .site-tagline a')];
   const empty = document.querySelector('#empty-posts');
   const status = document.querySelector('#filter-status');
   const activeTags = document.querySelector('#active-tags');
@@ -232,7 +233,7 @@ function enableTagFilters() {
 
   // Tag links on the home page filter in place instead of loading the page again.
   document.addEventListener('click', event => {
-    const link = event.target.closest('.post-tags a, #active-tag a');
+    const link = event.target.closest('.post-tags a, .site-tagline a, #active-tag a');
     if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const url = new URL(link.href);
     if (url.origin !== location.origin || url.pathname !== location.pathname) return;
@@ -277,8 +278,11 @@ function enableTitleShine() {
   document.querySelectorAll('.post-entry h3 a').forEach(link => {
     const bands = new Array(SHINE_SLOTS).fill(null);
     let lastStart = -Infinity;
-    link.addEventListener('pointerenter', event => {
-      if (event.pointerType === 'touch' || !allowed.matches) return;
+    link.addEventListener('pointerenter', event => { if (event.pointerType !== 'touch') shine(); });
+    // Keyboard focus runs the same light across the title.
+    link.addEventListener('focus', () => { if (link.matches(':focus-visible')) shine(); });
+    function shine() {
+      if (!allowed.matches) return;
       const now = performance.now();
       const slot = bands.indexOf(null);
       if (now - lastStart < MIN_GAP || slot < 0) return;
@@ -292,7 +296,7 @@ function enableTitleShine() {
         if (bands.every(b => !b)) link.classList.remove('shine');
       };
       band.finished.then(free, free);
-    });
+    }
   });
 }
 
@@ -345,7 +349,8 @@ function enableTocTooltip() {
   if (anchors.length == 0) return;
   const toggleTooltip = () => {
     anchors.forEach(anchor => {
-      if (anchor.offsetWidth < anchor.scrollWidth) {
+      // Cut short sideways or after the third line: show the whole heading on hover.
+      if (anchor.offsetWidth < anchor.scrollWidth || anchor.clientHeight + 1 < anchor.scrollHeight) {
         anchor.setAttribute('title', anchor.textContent);
       } else {
         anchor.removeAttribute('title');
@@ -373,7 +378,9 @@ function enableActiveToc() {
   let markerY = null;
   function placeMarker(entry) {
     if (!entry) { marker.classList.remove('is-shown'); return; }
-    const y = entry.link.offsetTop + (entry.link.offsetHeight - marker.offsetHeight) / 2;
+    // Level with the entry's first line, also when a long heading wraps.
+    const style = getComputedStyle(entry.link);
+    const y = entry.link.offsetTop + parseFloat(style.borderTopWidth) + (parseFloat(style.lineHeight) - marker.offsetHeight) / 2;
     if (y !== markerY) marker.style.transform = `translateY(${y}px)`;
     if (markerY === null) {
       // Place it before turning on the transition so it does not slide in from the top.
@@ -389,8 +396,9 @@ function enableActiveToc() {
   let scheduled = false;
   const update = () => {
     scheduled = false;
-    // Skip headings hidden by the tag filter.
-    const visible = entries.filter(entry => entry.heading.getClientRects().length);
+    // Skip headings hidden by the tag filter or inside a folded section; the index dims the latter.
+    entries.forEach(entry => entry.link.classList.toggle('is-folded', Boolean(entry.heading.closest('.fold.is-folded'))));
+    const visible = entries.filter(entry => entry.heading.getClientRects().length && !entry.link.classList.contains('is-folded'));
     if (!visible.length) { placeMarker(null); return; }
     let current = visible[0];
     for (const entry of visible) {
@@ -448,6 +456,7 @@ function enableActiveToc() {
   window.addEventListener('hashchange', schedule);
   window.addEventListener('popstate', schedule);
   window.addEventListener('tagchange', schedule);
+  window.addEventListener('foldchange', schedule);
   window.addEventListener('load', schedule);
   document.fonts.ready.then(schedule);
   update();
@@ -567,6 +576,277 @@ function addFootnoteBacklink() {
   });
 }
 
+// Each h2 and h3 section folds under its heading. The content after a heading, up to the next
+// heading of the same or a higher level, moves into a .fold wrapper; the chevron button in the
+// left gutter toggles it.
+function enableHeadingFolds() {
+  const article = document.querySelector('body.post article.prose');
+  if (!article) return;
+  const motion = window.matchMedia('(prefers-reduced-motion: no-preference)');
+  const chevron = '<svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const level = el => /^H[2-6]$/.test(el.tagName) ? Number(el.tagName[1]) : 0;
+  const syncs = new Map();
+  const timers = new Map();
+  let count = 0;
+
+  function setFolded(fold, folded) {
+    if (fold.classList.contains('is-folded') === folded) return;
+    if (motion.matches) {
+      // Clip the content only while it slides, so open sections never cut off outlines.
+      fold.classList.add('is-moving');
+      clearTimeout(timers.get(fold));
+      timers.set(fold, setTimeout(() => fold.classList.remove('is-moving'), 320));
+    }
+    fold.classList.toggle('is-folded', folded);
+    syncs.get(fold)();
+    window.dispatchEvent(new Event('foldchange'));
+  }
+
+  function addToggle(heading, fold) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'fold-toggle';
+    button.innerHTML = chevron;
+    button.setAttribute('aria-controls', fold.id);
+    const name = heading.textContent.trim();
+    const sync = () => {
+      const open = !fold.classList.contains('is-folded');
+      button.setAttribute('aria-expanded', String(open));
+      button.setAttribute('aria-label', `${open ? 'Fold' : 'Unfold'} section: ${name}`);
+      heading.classList.toggle('is-folded', !open);
+    };
+    syncs.set(fold, sync);
+    sync();
+    button.addEventListener('click', () => setFolded(fold, !fold.classList.contains('is-folded')));
+    heading.prepend(button);
+  }
+
+  function wrap(container, depth) {
+    const children = [...container.children];
+    for (let i = 0; i < children.length; i++) {
+      const heading = children[i];
+      if (level(heading) !== depth) continue;
+      const fold = document.createElement('div');
+      fold.className = 'fold';
+      fold.id = `fold-${++count}`;
+      const inner = document.createElement('div');
+      inner.className = 'fold-inner';
+      fold.append(inner);
+      let j = i + 1;
+      while (j < children.length && !(level(children[j]) && level(children[j]) <= depth)) inner.append(children[j++]);
+      i = j - 1;
+      if (!inner.children.length) continue;
+      heading.after(fold);
+      addToggle(heading, fold);
+      if (depth < 3) wrap(inner, 3);
+    }
+  }
+  wrap(article, 2);
+  wrap(article, 3); // h3 sections that come before the first h2
+
+  // Links into a folded section (the index, a shared URL) open the folds around the target.
+  function reveal(target) {
+    let opened = false;
+    for (let fold = target.closest('.fold'); fold; fold = fold.parentElement.closest('.fold')) {
+      if (fold.classList.contains('is-folded')) { setFolded(fold, false); opened = true; }
+    }
+    if (opened) setTimeout(() => target.scrollIntoView(), motion.matches ? 330 : 0);
+  }
+  const targetOf = hash => {
+    let id;
+    try { id = decodeURIComponent(hash.slice(1)); } catch { id = hash.slice(1); }
+    return id ? document.getElementById(id) : null;
+  };
+  document.addEventListener('click', event => {
+    const link = event.target.closest('a[href^="#"]');
+    const target = link && targetOf(link.hash);
+    if (target) reveal(target);
+  });
+  window.addEventListener('hashchange', () => { const target = targetOf(location.hash); if (target) reveal(target); });
+}
+
+// The # after a heading copies a link to that heading instead of only jumping to it.
+function enableAnchorCopy() {
+  const timers = new Map();
+  document.addEventListener('click', async event => {
+    const anchor = event.target.closest('.prose .zola-anchor');
+    if (!anchor || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    const url = new URL(anchor.getAttribute('href'), location.href);
+    history.replaceState(history.state, '', url.hash);
+    const label = anchor.getAttribute('aria-label');
+    try {
+      await navigator.clipboard.writeText(url.href);
+    } catch {
+      // Older browsers and unfocused frames refuse the Clipboard API; copy through a selection.
+      const field = document.createElement('textarea');
+      field.value = url.href;
+      field.setAttribute('readonly', '');
+      field.style.cssText = 'position: fixed; opacity: 0; pointer-events: none;';
+      document.body.append(field);
+      field.select();
+      const copied = document.execCommand('copy');
+      field.remove();
+      anchor.focus({ preventScroll: true });
+      if (!copied) return;
+    }
+    anchor.dataset.copied = '';
+    anchor.setAttribute('aria-label', 'Link copied');
+    clearTimeout(timers.get(anchor));
+    timers.set(anchor, setTimeout(() => {
+      delete anchor.dataset.copied;
+      anchor.setAttribute('aria-label', label);
+    }, 1500));
+  });
+}
+
+// Inline notes: the note component renders a phrase and its explanation. The phrase becomes a
+// toggle; the explanation opens under its paragraph, or in the right margin when there is room
+// (the index has the left one), joined to the line by a thin connector.
+function enableNotes() {
+  const article = document.querySelector('body.post article.prose');
+  const notes = article ? [...article.querySelectorAll('.note')] : [];
+  if (!notes.length) return;
+  const wide = window.matchMedia('(min-width: 1240px)'); // room for a note beside the 720px column
+  const motion = window.matchMedia('(prefers-reduced-motion: no-preference)');
+  const GAP = 16; // keep in step with the note offset in main.scss
+  const layer = document.createElement('div');
+  layer.className = 'note-layer';
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const lines = document.createElementNS(svgNS, 'svg');
+  lines.classList.add('note-lines');
+  lines.setAttribute('aria-hidden', 'true');
+  layer.append(lines);
+  article.append(layer);
+
+  const items = notes.map((note, i) => {
+    const ref = note.querySelector('.note-ref');
+    const source = note.querySelector('.note-body');
+    ref.setAttribute('role', 'button');
+    ref.tabIndex = 0;
+    ref.setAttribute('aria-expanded', 'false');
+    const block = document.createElement('div');
+    block.className = 'note-block';
+    block.id = `note-${i + 1}`;
+    block.setAttribute('role', 'note');
+    block.hidden = true;
+    const inner = document.createElement('div');
+    inner.className = 'note-inner';
+    const text = document.createElement('div');
+    text.className = 'note-text';
+    text.append(...source.childNodes);
+    source.remove();
+    inner.append(text);
+    block.append(inner);
+    ref.setAttribute('aria-controls', block.id);
+    const line = document.createElementNS(svgNS, 'path');
+    lines.append(line);
+    const host = ref.closest('li, p, blockquote, dd, td, th, figcaption') || note;
+    return { note, ref, block, text, line, host, open: false, timer: 0 };
+  });
+
+  let beside = null;
+  function place() {
+    if (beside === wide.matches) return;
+    beside = wide.matches;
+    article.classList.toggle('notes-beside', beside);
+    if (beside) {
+      items.forEach(item => layer.append(item.block));
+    } else {
+      // Under the paragraph, in reading order; inside list items and cells, at their end.
+      const tails = new Map();
+      items.forEach(item => {
+        const tail = tails.get(item.host);
+        if (tail) tail.after(item.block);
+        else if (item.host.matches('li, dd, td, th')) item.host.append(item.block);
+        else item.host.after(item.block);
+        tails.set(item.host, item.block);
+      });
+    }
+    layout();
+  }
+
+  function layout() {
+    if (!beside) { items.forEach(item => item.line.setAttribute('d', '')); return; }
+    const box = article.getBoundingClientRect();
+    const pad = parseFloat(getComputedStyle(article).paddingRight);
+    let floor = -Infinity;
+    for (const item of items) {
+      const rect = item.ref.getClientRects()[0];
+      const shown = item.open && rect && !item.ref.closest('.fold.is-folded');
+      item.block.classList.toggle('is-away', item.open && !shown);
+      if (!shown) { item.line.setAttribute('d', ''); continue; }
+      // The note's first line sits level with the phrase; notes that would overlap stack down.
+      const half = parseFloat(getComputedStyle(item.text).lineHeight) / 2;
+      const center = rect.top + rect.height / 2 - box.top;
+      const top = Math.max(center - half, floor + 16);
+      item.block.style.top = `${top}px`;
+      floor = top + item.block.offsetHeight;
+      // From just past the end of the text column to the note's rule.
+      const x0 = 8 - pad;
+      const x1 = GAP;
+      const y1 = top + half;
+      const xm = (x0 + x1) / 2;
+      item.line.setAttribute('d', Math.abs(y1 - center) < 0.5
+        ? `M${x0} ${center}H${x1}`
+        : `M${x0} ${center}H${xm}V${y1}H${x1}`);
+    }
+  }
+  let scheduled = false;
+  const schedule = () => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => { scheduled = false; layout(); });
+  };
+
+  function toggle(item, open = !item.open) {
+    if (open === item.open) return;
+    item.open = open;
+    item.ref.setAttribute('aria-expanded', String(open));
+    item.note.classList.toggle('is-open', open);
+    clearTimeout(item.timer);
+    if (open) {
+      item.block.hidden = false;
+      layout();
+      item.block.getBoundingClientRect(); // start the transition from the closed state
+      item.block.classList.add('is-open');
+    } else {
+      item.block.classList.remove('is-open');
+      layout();
+      const done = () => { item.block.hidden = true; layout(); };
+      if (motion.matches) item.timer = setTimeout(done, 300);
+      else done();
+    }
+  }
+
+  items.forEach(item => {
+    item.ref.addEventListener('click', () => toggle(item));
+    item.ref.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      toggle(item);
+    });
+    // Pointing at a phrase or its note darkens both and the line between them.
+    const link = on => [item.note, item.block, item.line].forEach(el => el.classList.toggle('is-linked', on));
+    [item.ref, item.block].forEach(el => {
+      el.addEventListener('pointerenter', () => link(true));
+      el.addEventListener('pointerleave', () => link(false));
+    });
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !event.defaultPrevented && !document.querySelector('dialog[open]')) {
+      items.forEach(item => toggle(item, false));
+    }
+  });
+
+  wide.addEventListener('change', place);
+  window.addEventListener('resize', schedule);
+  window.addEventListener('foldchange', schedule);
+  new ResizeObserver(schedule).observe(article);
+  document.fonts.ready.then(schedule);
+  place();
+}
+
 function enableImgLightense() {
   window.addEventListener("load", () => Lightense(".prose img:not(.no-lightense)", { background: 'rgba(43, 43, 43, 0.19)' }));
 }
@@ -589,6 +869,9 @@ if (document.querySelector('.prose')) {
   addCopyBtns();
   wrapTables();
   addFootnoteBacklink();
+  enableHeadingFolds();
+  enableAnchorCopy();
+  enableNotes();
   enableImgLightense();
 }
 

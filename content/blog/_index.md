@@ -16,7 +16,7 @@ title = "Blog"
 
 categorized = false
 back_to_top = true
-toc = false
+toc = true
 code_copy = true
 date_format = "%b %-d, %Y"
 

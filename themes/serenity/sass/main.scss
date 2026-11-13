@@ -1540,7 +1540,7 @@ template {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  // Same thin line as the right-side index marks the result Enter opens.
+  // Same thin line as the side index marks the result Enter opens.
   li[aria-selected="true"] a::before {
     content: '';
     position: absolute;
@@ -1591,15 +1591,27 @@ body { margin: 0; }
 
 $index-top: 168px;
 
-/* Right-side index: post headings and home years share one look. */
+/* Left-side index: post headings and home years share one look. The index sits in the left
+   margin and hugs the column: it shrinks to its entries and ends 3em before the text, so short
+   years stay close. Long headings wrap at 15em (about 30 Latin or 15 Hangul characters) and
+   stop at three lines with an ellipsis; narrow margins wrap them sooner. The right margin is
+   left to inline notes. */
 %side-index {
   font-size: 0.8125em;
-  nav { position: relative; padding: 0 1em 0 3em; background: none; }
+  nav {
+    position: relative;
+    width: fit-content;
+    min-width: 0;
+    max-width: min(100%, 15em + 4em); // 15em of text plus the side padding
+    margin-left: auto;
+    padding: 0 3em 0 1em;
+    background: none;
+  }
   // Thin line beside the current entry; main.js moves it with translateY.
   .toc-marker {
     position: absolute;
     top: 0;
-    left: calc(3em - 10px);
+    left: calc(1em - 10px);
     width: 1px;
     height: 1em;
     background: var(--text-color);
@@ -1608,18 +1620,28 @@ $index-top: 168px;
     &.is-shown { opacity: 1; }
     &.is-ready { transition: transform 0.25s cubic-bezier(0.2, 0.6, 0.3, 1), opacity 0.2s ease; }
   }
-  ul { list-style: none; margin: 0; padding: 0; line-height: 2.1; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  // Rows keep their 2.1em pitch: 1.5em lines plus 0.3em above and below. Wrapped lines of one
+  // entry sit closer than the rows, so they read as one heading. The space is a transparent
+  // border, not padding, so the clipped fourth line cannot show through it.
   a {
-    display: block;
-    padding: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    padding: 0;
+    border-block: 0.3em solid transparent;
+    line-height: 1.5;
+    white-space: normal; // the theme's index keeps entries on one line
+    word-break: keep-all; // Korean breaks at spaces, not inside a word
+    overflow-wrap: break-word;
     color: var(--text-pale-color);
     text-decoration: none;
     &.h3 { margin-left: 1em; padding: 0; border-left: 0; }
     &[aria-current="location"] { color: var(--text-color); font-weight: 400; }
     &:hover { color: var(--text-color); }
+    // Headings inside a folded section; clicking one opens the section.
+    &.is-folded { opacity: 0.45; }
   }
 }
 
@@ -1673,6 +1695,17 @@ $index-top: 168px;
     font-size: 0.875em;
     line-height: 20px;
     color: var(--text-pale-color);
+    // AI, Bio and Chem filter the list like tag links. They look like the rest of the line on
+    // purpose, a small find for whoever points at them; hover and a selected filter darken them.
+    a {
+      display: inline; // the theme's header links are padded blocks
+      margin: 0;
+      padding: 0;
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.15s ease;
+      &:hover, &:focus-visible, &.is-selected { color: var(--text-color); }
+    }
   }
   &:has(.site-tagline) { padding-bottom: 48px; }
 }
@@ -1715,6 +1748,18 @@ body.blog main.blog-main { margin: 0; padding: 0 24px; }
     color: var(--text-pale-color);
     font-variant-numeric: tabular-nums;
   }
+}
+/* Keyboard focus (Tab): the thin line the indexes use marks the focused post. */
+.post-entry { position: relative; }
+.post-entry h3 a:focus-visible { outline: none; text-decoration: underline; }
+.post-entry:has(h3 a:focus-visible)::before {
+  content: '';
+  position: absolute;
+  top: calc(6px + 0.8em - 7px);
+  left: -14px;
+  width: 1px;
+  height: 14px;
+  background: var(--text-color);
 }
 /* Title hover: underline, plus bands of light sweeping across the letters.
    Each band is its own background layer driven by --shine-N. main.js adds .shine and
@@ -1816,19 +1861,180 @@ body.post .prose {
     &:hover { opacity: 1; text-decoration-color: currentColor; }
   }
   .zola-anchor { color: var(--text-decoration-color); border: 0; }
+  // After a click the # copies the heading's link and says so for a moment (main.js).
+  .zola-anchor[data-copied] {
+    visibility: visible !important;
+    &::after { content: 'Copied'; font-size: 0.75em; font-weight: 400; color: var(--text-pale-color); }
+  }
 }
 
-/* right-side index */
+/* Folding sections: main.js moves each h2/h3 section into .fold and puts a chevron in the
+   left gutter. The grid row slides between 1fr and 0fr. */
+body.post .prose {
+  h2, h3 { position: relative; }
+  // The wrapper keeps its children's margins, so the heading gives up its own to the first one.
+  :is(h2, h3):has(+ .fold) { margin-bottom: 0; }
+  .fold {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.3s cubic-bezier(0.2, 0.6, 0.3, 1);
+    &.is-folded { grid-template-rows: 0fr; }
+  }
+  .fold-inner {
+    min-height: 0;
+    // The next heading's top margin alone sets the gap, as when these margins collapsed.
+    > :last-child, > :last-child > :last-child { margin-bottom: 0; }
+  }
+  // Clip only while sliding or shut; once shut, the content also leaves the tab order.
+  .fold.is-moving > .fold-inner,
+  .fold.is-folded > .fold-inner { overflow: hidden; }
+  .fold.is-folded > .fold-inner { visibility: hidden; transition: visibility 0s 0.3s; }
+  .fold-toggle {
+    position: absolute;
+    top: 0;
+    left: -26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 1lh; // the heading's first line
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text-pale-color);
+    font: inherit;
+    line-height: inherit;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease, color 0.15s ease;
+    svg { display: block; transition: rotate 0.2s ease; }
+    &:hover { color: var(--text-color); }
+    &:focus-visible { opacity: 1; outline: 2px solid var(--text-color); outline-offset: -4px; border-radius: 4px; }
+    &[aria-expanded="false"] { opacity: 1; svg { rotate: -90deg; } }
+  }
+  :is(h2, h3):hover > .fold-toggle { opacity: 1; }
+}
+@media (hover: none) {
+  body.post .prose .fold-toggle { opacity: 0.6; }
+}
+
+/* Inline notes: a dotted phrase with a small plus opens a short explanation (main.js). Narrow
+   screens open it under the paragraph; wide ones in the right margin, joined by a thin line. */
+body { --note-width: min(260px, calc((100vw - var(--main-max-width)) / 2 - 56px)); } // --main-max-width is set on body
+// Without JavaScript the explanation reads as a parenthesis; with it, main.js rebuilds it.
+.note-body {
+  font-size: 0.875em;
+  color: var(--text-pale-color);
+  &::before { content: ' ('; }
+  &::after { content: ')'; }
+}
+.js .note-body { display: none; }
+.note-ref {
+  cursor: pointer;
+  border-radius: 2px;
+  text-decoration: underline dotted;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--text-pale-color);
+  transition: text-decoration-color 0.15s ease;
+  // The word joiner keeps the plus on the phrase's last line. It turns into a cross when open.
+  &::after {
+    content: '\2060+';
+    display: inline-block;
+    margin-left: 0.1em;
+    font-size: 0.75em;
+    line-height: 1;
+    vertical-align: 0.4em;
+    color: var(--text-pale-color);
+    transition: rotate 0.2s ease, color 0.15s ease;
+  }
+  &:hover, .note.is-linked > & { text-decoration-color: currentColor; &::after { color: var(--text-color); } }
+  &[aria-expanded="true"] {
+    text-decoration-style: solid;
+    text-decoration-thickness: 1px;
+    text-decoration-color: currentColor;
+    &::after { rotate: 45deg; color: var(--text-color); }
+  }
+  &:focus-visible { outline: 2px solid var(--text-color); outline-offset: 2px; }
+}
+.note-text {
+  padding-left: 14px;
+  border-left: 1px solid var(--text-decoration-color);
+  font-size: 0.875em;
+  line-height: 1.7;
+  color: var(--text-pale-color);
+  transition: border-color 0.15s ease;
+  .is-linked > .note-inner > & { border-color: var(--text-color); }
+}
+// Under the paragraph: closed, the negative top margin cancels the paragraph's bottom margin so
+// nothing moves; open, the note sits close under the text and the next paragraph keeps its gap.
+.note-block {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin: -1.1em 0 1.1em;
+  opacity: 0;
+  transition: grid-template-rows 0.28s cubic-bezier(0.2, 0.6, 0.3, 1), margin-top 0.28s cubic-bezier(0.2, 0.6, 0.3, 1), opacity 0.2s ease;
+  &.is-open { grid-template-rows: 1fr; margin-top: -0.55em; opacity: 1; }
+}
+.note-inner { min-height: 0; overflow: hidden; }
+:is(li, dd, td, th) > .note-block {
+  margin: 0;
+  &.is-open { margin: 0.35em 0 0.5em; }
+}
+// Beside the column: the notes live in a layer at the article's right edge and main.js sets
+// each top.
+.note-layer { display: none; }
+article.prose.notes-beside {
+  position: relative;
+  .note-layer { display: block; position: absolute; top: 0; left: 100%; width: 0; height: 0; }
+  .note-block {
+    position: absolute;
+    top: 0;
+    left: 16px; // keep in step with GAP in main.js
+    width: var(--note-width);
+    margin: 0;
+    grid-template-rows: 1fr;
+    translate: 6px 0;
+    transition: opacity 0.2s ease, translate 0.2s ease;
+    &.is-open { translate: 0 0; }
+    &.is-away { visibility: hidden; }
+  }
+  .note-text { margin: 0; }
+}
+.note-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+  path { fill: none; stroke: var(--text-decoration-color); stroke-width: 1; transition: stroke 0.15s ease; }
+  path.is-linked { stroke: var(--text-color); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.post .prose .fold, body.post .prose .fold-toggle svg, .note-block, .note-ref::after { transition: none; }
+  article.prose.notes-beside .note-block { transition: none; }
+}
+
+/* left-side index */
 body.post aside {
   @extend %side-index;
   top: $index-top;
-  #back-to-top { margin-left: 2.25em; &:hover { color: var(--text-color); } }
+  right: auto;
+  left: 0;
+  // Under the index, at the same distance from the column.
+  #back-to-top {
+    right: calc(50% + var(--main-max-width) / 2 + 3em - 15px);
+    margin-left: 0;
+    &:hover { color: var(--text-color); }
+  }
 }
 body.blog .year-index {
   @extend %side-index;
   position: fixed;
   top: $index-top - 6px; // centers the first year on the list's first year heading
-  right: 0;
+  left: 0;
   width: calc((100% - var(--main-max-width)) / 2);
   font-variant-numeric: tabular-nums;
 }
@@ -1900,6 +2106,7 @@ footer .right #markdown-btn:hover { color: var(--text-color); }
   .site-header:has(.site-tagline) { padding-bottom: 36px; }
   body.blog main.blog-main { padding: 0 20px; }
   body.post article.prose { padding: 0 20px 40px; }
+  body.post .prose .fold-toggle { left: -20px; width: 20px; } // stays inside the 20px gutter
   .year-group { padding-bottom: 36px; }
   .post-entry { flex-wrap: wrap; row-gap: 0; }
   .post-entry h3 { flex: 1 1 0; }

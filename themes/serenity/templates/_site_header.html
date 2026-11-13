@@ -10,8 +10,13 @@
       <span class="theme-icon">{{ load_data(path="icon/theme.svg") | safe }}</span>
     </button>
   </div>
-  {# The home page says what the blog is about; posts keep the header to one line. #}
+  {# The home page says what the blog is about; posts keep the header to one line.
+     Field names in it (config.extra.fields) link to the home list filtered by that tag. #}
   {% if page is not defined and config.description %}
-  <p class="site-tagline">{{ config.description }}</p>
+  {%- set_global tagline = config.description -%}
+  {%- for field in config.extra.fields | default(value=[]) -%}
+  {%- set_global tagline = tagline | replace(from=field, to='<a href="' ~ get_url(path='/') ~ '?tag=' ~ field ~ '">' ~ field ~ '</a>') -%}
+  {%- endfor %}
+  <p class="site-tagline">{{ tagline | safe }}</p>
   {% endif %}
 </header>

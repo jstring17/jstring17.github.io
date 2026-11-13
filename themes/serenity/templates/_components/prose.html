@@ -58,6 +58,14 @@
 {%- endcomponent figure %}
 
 
+{# Inline note: a phrase that opens a short explanation without leaving the text. main.js turns
+   the phrase into a toggle and shows the explanation under the paragraph, or beside the column
+   on wide screens. Write it inside a paragraph on one line; the body may use inline markdown. #}
+{% component note(text: string) -%}
+<span class="note"><span class="note-ref">{{ text }}</span><span class="note-body">{{ body | trim | safe }}</span></span>
+{%- endcomponent note %}
+
+
 {% component mermaid() -%}
 <pre class="mermaid">
 {{ body }}

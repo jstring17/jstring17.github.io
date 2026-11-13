@@ -51,7 +51,8 @@ bio = ""
 links = [
   { name = "GitHub", icon = "github", url = "https://github.com/johyun" },
 ]
-blog_tags = ["AI", "Bio", "Market", "Research"]
+# Field tags; the home tagline links each one to the filtered list.
+fields = ["AI", "Bio", "Chem"]
 
 blog_section_path = "/blog"
 
