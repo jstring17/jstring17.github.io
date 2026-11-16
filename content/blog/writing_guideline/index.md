@@ -198,6 +198,13 @@ Charts resize automatically and redraw on light/dark changes, resetting interact
 
 {{ <youtube id="ueufxzUjsS0" /> }}
 
+### Inline notes
+
+Links stay in the text, and short explanations open in place instead of as footnotes. Drug discovery teams compare compounds by {% <note text="IC50"> %}The concentration that blocks half of the target's activity. Lower means more potent.{% </note> %} long before any animal study.
+A second measure, the {% <note text="dissociation constant"> %}Written *K*<sub>d</sub>: how readily a bound ligand lets go. A small value means it holds on tightly.{% </note> %}, says how firmly the molecule holds on once it binds.
+
+Open both. On narrow screens each explanation unfolds under its paragraph. On wide screens they sit in the right margin: the second note stacks below the first instead of overlapping, and its connector bends to reach it. `Esc` closes every open note.
+
 ### Reading controls
 
 - **Search:** Blog page icon or `/`; `Esc` to close, arrow keys to navigate. Searches titles, descriptions, and body text; excludes code blocks. Try `Markdown` for match highlighting.
