@@ -851,6 +851,307 @@ function enableNotes() {
   place();
 }
 
+// Bond field: a toy in the page's empty space, drawn behind the content in the text colour.
+// A click drops a few atoms that drift and bond with neighbours; dragging draws a chain; holding
+// gathers a cluster that bursts on release; an atom can be grabbed and pulled. It only answers
+// presses on bare containers, never on text, links or controls, so reading and selecting text
+// work as before. Touch keeps scrolling: a tap drops atoms and a long press gathers them.
+function enableBondField() {
+  if (!window.matchMedia('(prefers-reduced-motion: no-preference)').matches) return;
+  const canvas = document.createElement('canvas');
+  canvas.className = 'bond-field';
+  canvas.setAttribute('aria-hidden', 'true');
+  document.body.append(canvas);
+  const ctx = canvas.getContext('2d');
+  const BOND = 48;      // atoms closer than this are drawn bonded and pull toward REST
+  const REST = 30;
+  const STEP = 18;      // spacing of a dragged chain
+  const LIFE = 9000;    // ms an atom lives; it fades in quickly and out over FADE
+  const FADE = 2500;
+  const HOLD = 350;     // ms a still press waits before it starts gathering
+  const PUSH = 260;     // reach of a modifier-click push
+  const SWEEP = 90;     // reach of a held modifier press as it moves
+  const MAX = 160;
+  const BLANK = 'html, body, #wrapper, main, .blog-main, .blog-posts, .year-group, .year-posts, '
+    + 'article.prose, .fold, .fold-inner, aside, footer, .site-header';
+  let atoms = [];
+  let chains = [];      // explicit bonds from dragging: { a, b }
+  let rings = [];       // shock rings from pushes: { x, y, born }
+  let press = null;
+  let frame = 0;
+  let dpr = 1;
+
+  function resize() {
+    dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(innerWidth * dpr);
+    canvas.height = Math.round(innerHeight * dpr);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function start() { if (!frame) frame = requestAnimationFrame(tick); }
+  function add(x, y, vx = 0, vy = 0) {
+    // vx/vy carry pushes and pulls and die away; dx/dy is the atom's own slow, steady drift, so
+    // a fresh cluster keeps spreading apart and its bonds fade as the atoms part.
+    const atom = { x, y, vx, vy, dx: (Math.random() - 0.5) * 0.35, dy: (Math.random() - 0.5) * 0.35,
+      r: 2 + Math.random() * 1.6, born: performance.now() };
+    atoms.push(atom);
+    if (atoms.length > MAX) {
+      const old = atoms.shift();
+      chains = chains.filter(c => c.a !== old && c.b !== old);
+    }
+    start();
+    return atom;
+  }
+  function scatter(x, y, count, spread) {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const d = Math.random() * spread;
+      add(x + Math.cos(angle) * d, y + Math.sin(angle) * d);
+    }
+  }
+  const nearest = (x, y, within) => {
+    let best = null;
+    let bestD = within;
+    for (const atom of atoms) {
+      const d = Math.hypot(atom.x - x, atom.y - y);
+      if (d < bestD) { best = atom; bestD = d; }
+    }
+    return best;
+  };
+  // Page coordinates, so atoms stay where they were dropped while the page scrolls.
+  const at = event => ({ x: event.clientX + window.scrollX, y: event.clientY + window.scrollY });
+  // A push flings nearby atoms outward, harder the closer they are, with a thin shock ring.
+  // Flung atoms glide; any that leave the screen are gone.
+  function blast(x, y) {
+    for (const atom of atoms) {
+      const dx = atom.x - x;
+      const dy = atom.y - y;
+      const d = Math.hypot(dx, dy) || 1;
+      if (d > PUSH) continue;
+      const speed = 5 + 11 * (1 - d / PUSH);
+      atom.vx += dx / d * speed;
+      atom.vy += dy / d * speed;
+      atom.flung = true;
+    }
+    rings.push({ x, y, born: performance.now() });
+    start();
+  }
+  const pushing = event => event.shiftKey || event.ctrlKey || event.altKey || event.metaKey;
+
+  function isBlank(event) {
+    // Mouse events have no isPrimary; only a second finger or pen is turned away.
+    if (event.button !== 0 || event.isPrimary === false) return false;
+    if (document.documentElement.classList.contains('theme-switching') || document.querySelector('dialog[open]')) return false;
+    return event.target instanceof Element && event.target.matches(BLANK);
+  }
+
+  // Selection starts on mousedown, so a press that belongs to the field cancels it there.
+  // Clicking blank space still clears an old selection and focus, as it would without the field.
+  document.addEventListener('mousedown', event => {
+    if (!isBlank(event)) return;
+    event.preventDefault();
+    window.getSelection()?.removeAllRanges();
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  });
+
+  // On a Mac, Ctrl-click opens the context menu; on blank space it pushes instead.
+  document.addEventListener('contextmenu', event => {
+    if (event.ctrlKey && event.target instanceof Element && event.target.matches(BLANK)) event.preventDefault();
+  });
+
+  document.addEventListener('pointerdown', event => {
+    if (!isBlank(event)) return;
+    const { x, y } = at(event);
+    // Shift, Ctrl, Alt or Cmd with a press pushes atoms away; held and moved, it sweeps them.
+    if (event.pointerType !== 'touch' && pushing(event)) {
+      press = { id: event.pointerId, touch: false, cx: event.clientX, cy: event.clientY, x, y, mode: 'push', timer: 0, spawn: 0 };
+      try { event.target.setPointerCapture(event.pointerId); } catch {}
+      blast(x, y);
+      return;
+    }
+    const grabbed = event.pointerType === 'touch' ? null : nearest(x, y, 14);
+    press = { id: event.pointerId, touch: event.pointerType === 'touch', cx: event.clientX, cy: event.clientY,
+      x, y, mode: grabbed ? 'grab' : 'press', atom: grabbed, last: null, gathered: 0, timer: 0, spawn: 0 };
+    // Keep receiving the drag even if the pointer leaves the window before it is released.
+    if (!press.touch) { try { event.target.setPointerCapture(event.pointerId); } catch {} }
+    if (grabbed) { grabbed.born = performance.now(); start(); return; }
+    press.timer = setTimeout(() => {
+      if (!press || press.mode !== 'press') return;
+      press.mode = 'hold';
+      press.spawn = setInterval(() => {
+        if (!press || press.mode !== 'hold' || press.gathered >= 14) return;
+        press.gathered++;
+        const angle = Math.random() * Math.PI * 2;
+        const d = 10 + Math.random() * 16;
+        add(press.x + Math.cos(angle) * d, press.y + Math.sin(angle) * d);
+      }, 70);
+      start();
+    }, HOLD);
+  });
+
+  document.addEventListener('pointermove', event => {
+    if (!press || event.pointerId !== press.id) return;
+    const { x, y } = at(event);
+    if (press.mode === 'press' && Math.hypot(event.clientX - press.cx, event.clientY - press.cy) > 6) {
+      clearTimeout(press.timer);
+      if (press.touch) { press = null; return; } // a touch drag scrolls the page
+      press.mode = 'draw';
+      press.last = add(press.x, press.y);
+    }
+    if (press.mode === 'draw') {
+      // Lay atoms along the path at even spacing, each bonded to the one before.
+      let dx = x - press.last.x;
+      let dy = y - press.last.y;
+      let d = Math.hypot(dx, dy);
+      while (d >= STEP) {
+        const next = add(press.last.x + dx / d * STEP, press.last.y + dy / d * STEP);
+        chains.push({ a: press.last, b: next });
+        press.last = next;
+        dx = x - next.x;
+        dy = y - next.y;
+        d = Math.hypot(dx, dy);
+      }
+    } else if (press.mode === 'grab') {
+      press.atom.vx = x - press.atom.x;
+      press.atom.vy = y - press.atom.y;
+      press.atom.x = x;
+      press.atom.y = y;
+    } else if (press.mode === 'hold' || press.mode === 'push') {
+      press.x = x;
+      press.y = y;
+    }
+  });
+
+  function release(event) {
+    if (!press || event.pointerId !== press.id) return;
+    clearTimeout(press.timer);
+    clearInterval(press.spawn);
+    if (press.mode === 'press' && event.type === 'pointerup') {
+      scatter(press.x, press.y, 5, 22);
+    } else if (press.mode === 'hold') {
+      // Let go: everything gathered nearby bursts outward, and bonds snap as atoms part.
+      for (const atom of atoms) {
+        const dx = atom.x - press.x;
+        const dy = atom.y - press.y;
+        const d = Math.hypot(dx, dy) || 1;
+        if (d > 120) continue;
+        const speed = 3 + 5 * (1 - d / 120);
+        atom.vx += dx / d * speed;
+        atom.vy += dy / d * speed;
+      }
+    }
+    press = null;
+  }
+  document.addEventListener('pointerup', release);
+  document.addEventListener('pointercancel', release);
+
+  const fade = (atom, now) => {
+    const age = now - atom.born;
+    return Math.max(0, Math.min(1, age / 300, (LIFE - age) / FADE));
+  };
+
+  function tick(now) {
+    frame = 0;
+    atoms = atoms.filter(atom => now - atom.born < LIFE);
+    chains = chains.filter(c => atoms.includes(c.a) && atoms.includes(c.b));
+    const chained = new Set(chains.map(c => c.a).concat(chains.map(c => c.b)));
+    // Left alone, atoms only drift and bonds are just drawn between near ones. While an atom is
+    // being pulled, near neighbours spring toward a resting distance so the molecule follows.
+    if (press?.mode === 'grab') for (let i = 0; i < atoms.length; i++) {
+      const a = atoms[i];
+      for (let j = i + 1; j < atoms.length; j++) {
+        const b = atoms[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const d = Math.hypot(dx, dy) || 1;
+        if (d >= BOND) continue;
+        const f = (d - REST) * 0.006;
+        a.vx += dx / d * f; a.vy += dy / d * f;
+        b.vx -= dx / d * f; b.vy -= dy / d * f;
+      }
+    }
+    for (const { a, b } of chains) {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const f = (d - STEP) * 0.03;
+      a.vx += dx / d * f; a.vy += dy / d * f;
+      b.vx -= dx / d * f; b.vy -= dy / d * f;
+    }
+    for (const atom of atoms) {
+      if (press?.mode === 'hold') {
+        const dx = press.x - atom.x;
+        const dy = press.y - atom.y;
+        if (Math.hypot(dx, dy) < 140) { atom.vx += dx * 0.004; atom.vy += dy * 0.004; }
+      } else if (press?.mode === 'push') {
+        const dx = atom.x - press.x;
+        const dy = atom.y - press.y;
+        const d = Math.hypot(dx, dy) || 1;
+        if (d < SWEEP) {
+          const f = 0.8 * (1 - d / SWEEP);
+          atom.vx += dx / d * f;
+          atom.vy += dy / d * f;
+          atom.flung = true;
+        }
+      }
+      if (press?.mode === 'grab' && atom === press.atom) continue;
+      // A flung atom glides until it slows down, then drifts like the rest.
+      const keep = atom.flung ? 0.985 : 0.95;
+      atom.vx *= keep;
+      atom.vy *= keep;
+      if (atom.flung && Math.hypot(atom.vx, atom.vy) < 0.3) atom.flung = false;
+      atom.x += atom.vx + atom.dx;
+      atom.y += atom.vy + atom.dy;
+    }
+    // Flung atoms that leave the screen are gone; others stay pinned to the page.
+    const left = window.scrollX - 20;
+    const top = window.scrollY - 20;
+    const right = window.scrollX + innerWidth + 20;
+    const bottom = window.scrollY + innerHeight + 20;
+    const before = atoms.length;
+    atoms = atoms.filter(a => !a.flung || (a.x > left && a.x < right && a.y > top && a.y < bottom));
+    if (atoms.length !== before) chains = chains.filter(c => atoms.includes(c.a) && atoms.includes(c.b));
+    rings = rings.filter(ring => now - ring.born < 450);
+
+    ctx.setTransform(dpr, 0, 0, dpr, -window.scrollX * dpr, -window.scrollY * dpr);
+    ctx.clearRect(window.scrollX, window.scrollY, innerWidth, innerHeight);
+    const color = getComputedStyle(document.body).getPropertyValue('--text-color').trim() || '#222';
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < atoms.length; i++) {
+      const a = atoms[i];
+      for (let j = i + 1; j < atoms.length; j++) {
+        const b = atoms[j];
+        const d = Math.hypot(b.x - a.x, b.y - a.y);
+        if (d >= BOND) continue;
+        ctx.globalAlpha = Math.min(fade(a, now), fade(b, now)) * (1 - d / BOND) * 0.6;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
+    }
+    for (const { a, b } of chains) {
+      if (Math.hypot(b.x - a.x, b.y - a.y) < BOND) continue; // already drawn above
+      ctx.globalAlpha = Math.min(fade(a, now), fade(b, now)) * 0.35;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+    for (const atom of atoms) {
+      ctx.globalAlpha = fade(atom, now) * (chained.has(atom) ? 0.75 : 0.85);
+      ctx.beginPath(); ctx.arc(atom.x, atom.y, atom.r, 0, Math.PI * 2); ctx.fill();
+    }
+    for (const ring of rings) {
+      const k = (now - ring.born) / 450;
+      ctx.globalAlpha = (1 - k) * 0.35;
+      ctx.beginPath(); ctx.arc(ring.x, ring.y, 8 + (PUSH - 8) * (1 - (1 - k) ** 3), 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    if (atoms.length || press || rings.length) start();
+    else ctx.clearRect(window.scrollX, window.scrollY, innerWidth, innerHeight);
+  }
+  // Atoms are pinned to the page, so a scroll while they live just needs the next frame.
+  window.addEventListener('scroll', () => { if (atoms.length) start(); }, { passive: true });
+}
+
 function enableImgLightense() {
   window.addEventListener("load", () => Lightense(".prose img:not(.no-lightense)", { background: 'rgba(43, 43, 43, 0.19)' }));
 }
@@ -878,6 +1179,7 @@ if (document.querySelector('.prose')) {
   enableNotes();
   enableImgLightense();
 }
+enableBondField();
 
 // A text/plain Blob preserves the author source without rendering HTML or Markdown.
 const markdownLink = document.querySelector('#markdown-btn');
