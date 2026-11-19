@@ -200,10 +200,12 @@ Charts resize automatically and redraw on light/dark changes, resetting interact
 
 ### Inline notes
 
-Links stay in the text, and short explanations open in place instead of as footnotes. Drug discovery teams compare compounds by {% <note text="IC50"> %}The concentration that blocks half of the target's activity. Lower means more potent.{% </note> %} long before any animal study.
+Links stay in the text, and short explanations open in place instead of as footnotes. Drug discovery teams compare compounds by {% <note text="IC50"> %}The concentration that blocks half of the target's activity. Lower means more potent. See [IC50 on Wikipedia](https://en.wikipedia.org/wiki/IC50).{% </note> %} long before any animal study.
 A second measure, the {% <note text="dissociation constant"> %}Written *K*<sub>d</sub>: how readily a bound ligand lets go. A small value means it holds on tightly.{% </note> %}, says how firmly the molecule holds on once it binds.
 
 Open both. On narrow screens each explanation unfolds under its paragraph. On wide screens they sit in the right margin: the second note stacks below the first instead of overlapping, and its connector bends to reach it. `Esc` closes every open note.
+
+A note can also carry links and images. Plotted against a log dose, the response traces a {% <note text="sigmoid curve"> %}The dashed line marks the midpoint, the IC50. ![Dose–response curve with the IC50 marked at its midpoint](dose-response.svg) An image stored beside the post shrinks to the note's width; click it to enlarge.{% </note> %} from no effect to full effect.
 
 ### Reading controls
 

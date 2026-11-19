@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 150" width="960" height="600" role="img" aria-label="Dose–response curve with the IC50 marked at its midpoint">
+  <g fill="none" stroke="#8a8a8a" stroke-width="1">
+    <path d="M32 12V120H228"/>
+    <path d="M32 116C95 116 135 24 198 24H228" stroke-width="2"/>
+    <path d="M115 120V70H32" stroke-dasharray="3 3"/>
+    <circle cx="115" cy="70" r="3" fill="#8a8a8a"/>
+  </g>
+  <g fill="#8a8a8a" font-family="sans-serif" font-size="10">
+    <text x="104" y="135">IC50</text>
+    <text x="180" y="135">log dose</text>
+    <text x="36" y="20">response</text>
+    <text x="6" y="74">50%</text>
+  </g>
+</svg>

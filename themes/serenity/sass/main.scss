@@ -2001,7 +2001,11 @@ article.prose.notes-beside {
   }
   .note-text { margin: 0; }
 }
-.note-lines {
+// The connector is drawn inside its note (main.js gives it the note's own coordinates), so the
+// line, its bend and the text fade and slide together.
+.note-line { display: none; }
+article.prose.notes-beside .note-line {
+  display: block;
   position: absolute;
   top: 0;
   left: 0;
@@ -2010,7 +2014,20 @@ article.prose.notes-beside {
   overflow: visible;
   pointer-events: none;
   path { fill: none; stroke: var(--text-decoration-color); stroke-width: 1; transition: stroke 0.15s ease; }
-  path.is-linked { stroke: var(--text-color); }
+}
+// Pointing at the phrase or the note darkens the line with the note's rule.
+article.prose.notes-beside .note-block.is-linked > .note-line path { stroke: var(--text-color); }
+// Images in a note take the note's width.
+.note-text img { margin: 0.5em 0; }
+// A clicked image zooms in place (Lightense) and has to rise above the blurred backdrop. The
+// note's clipping and its slide (a transform, which starts a stacking context) would keep it
+// underneath, so the note drops both while one of its images is open or closing.
+article.prose .note-block:has(.lightense-open, .lightense-transitioning) {
+  > .note-inner { overflow: visible; }
+}
+article.prose.notes-beside .note-block.is-open:has(.lightense-open, .lightense-transitioning) {
+  translate: none;
+  transition: none;
 }
 @media (prefers-reduced-motion: reduce) {
   body.post .prose .fold, body.post .prose .fold-toggle svg, .note-block, .note-ref::after { transition: none; }

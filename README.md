@@ -53,7 +53,9 @@ Teams compare compounds by {% <note text="IC50"> %}The concentration that blocks
 ```
 
 The phrase gets a dotted underline and a small plus. A click opens the explanation under
-the paragraph, or beside the column on wide screens. Each `##` and `###` section folds from
+the paragraph, or beside the column on wide screens. The body can hold links, emphasis,
+inline code and images stored beside the post (`![Description](figure.webp)`), but no blank
+lines, lists or code blocks. Each `##` and `###` section folds from
 the chevron beside its heading, and the `#` after a heading copies a link to it.
 
 ## Deploy

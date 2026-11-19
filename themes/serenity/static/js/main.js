@@ -712,12 +712,8 @@ function enableNotes() {
   const GAP = 16; // keep in step with the note offset in main.scss
   const layer = document.createElement('div');
   layer.className = 'note-layer';
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const lines = document.createElementNS(svgNS, 'svg');
-  lines.classList.add('note-lines');
-  lines.setAttribute('aria-hidden', 'true');
-  layer.append(lines);
   article.append(layer);
+  const svgNS = 'http://www.w3.org/2000/svg';
 
   const items = notes.map((note, i) => {
     const ref = note.querySelector('.note-ref');
@@ -737,10 +733,14 @@ function enableNotes() {
     text.append(...source.childNodes);
     source.remove();
     inner.append(text);
-    block.append(inner);
-    ref.setAttribute('aria-controls', block.id);
+    // The connector lives inside the note, so it fades and slides with the text as one piece.
+    const connector = document.createElementNS(svgNS, 'svg');
+    connector.classList.add('note-line');
+    connector.setAttribute('aria-hidden', 'true');
     const line = document.createElementNS(svgNS, 'path');
-    lines.append(line);
+    connector.append(line);
+    block.append(connector, inner);
+    ref.setAttribute('aria-controls', block.id);
     const host = ref.closest('li, p, blockquote, dd, td, th, figcaption') || note;
     return { note, ref, block, text, line, host, open: false, timer: 0 };
   });
@@ -767,29 +767,30 @@ function enableNotes() {
   }
 
   function layout() {
-    if (!beside) { items.forEach(item => item.line.setAttribute('d', '')); return; }
+    if (!beside) return;
     const box = article.getBoundingClientRect();
     const pad = parseFloat(getComputedStyle(article).paddingRight);
     let floor = -Infinity;
     for (const item of items) {
+      // A closing note keeps its place and its line until it has faded out.
+      if (item.block.hidden) continue;
       const rect = item.ref.getClientRects()[0];
-      const shown = item.open && rect && !item.ref.closest('.fold.is-folded');
-      item.block.classList.toggle('is-away', item.open && !shown);
-      if (!shown) { item.line.setAttribute('d', ''); continue; }
+      const shown = rect && !item.ref.closest('.fold.is-folded');
+      item.block.classList.toggle('is-away', !shown);
+      if (!shown) continue;
       // The note's first line sits level with the phrase; notes that would overlap stack down.
       const half = parseFloat(getComputedStyle(item.text).lineHeight) / 2;
       const center = rect.top + rect.height / 2 - box.top;
       const top = Math.max(center - half, floor + 16);
       item.block.style.top = `${top}px`;
       floor = top + item.block.offsetHeight;
-      // From just past the end of the text column to the note's rule.
-      const x0 = 8 - pad;
-      const x1 = GAP;
-      const y1 = top + half;
-      const xm = (x0 + x1) / 2;
-      item.line.setAttribute('d', Math.abs(y1 - center) < 0.5
-        ? `M${x0} ${center}H${x1}`
-        : `M${x0} ${center}H${xm}V${y1}H${x1}`);
+      // In the note's own coordinates: from just past the end of the text column (x0, level
+      // with the phrase) to the note's rule at x = 0, level with its first line.
+      const x0 = 8 - pad - GAP;
+      const y0 = center - top;
+      item.line.setAttribute('d', Math.abs(y0 - half) < 0.5
+        ? `M${x0} ${half}H0`
+        : `M${x0} ${y0}H${x0 / 2}V${half}H0`);
     }
   }
   let scheduled = false;
@@ -827,7 +828,7 @@ function enableNotes() {
       toggle(item);
     });
     // Pointing at a phrase or its note darkens both and the line between them.
-    const link = on => [item.note, item.block, item.line].forEach(el => el.classList.toggle('is-linked', on));
+    const link = on => [item.note, item.block].forEach(el => el.classList.toggle('is-linked', on));
     [item.ref, item.block].forEach(el => {
       el.addEventListener('pointerenter', () => link(true));
       el.addEventListener('pointerleave', () => link(false));
@@ -842,7 +843,10 @@ function enableNotes() {
   wide.addEventListener('change', place);
   window.addEventListener('resize', schedule);
   window.addEventListener('foldchange', schedule);
-  new ResizeObserver(schedule).observe(article);
+  // The article reflows with folds and images; a note grows when an image inside it loads.
+  const resize = new ResizeObserver(schedule);
+  resize.observe(article);
+  items.forEach(item => resize.observe(item.block));
   document.fonts.ready.then(schedule);
   place();
 }
