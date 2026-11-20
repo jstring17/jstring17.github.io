@@ -854,8 +854,9 @@ function enableNotes() {
 // Bond field: a toy in the page's empty space, drawn behind the content in the text colour.
 // A click drops a few atoms that drift and bond with neighbours; dragging draws a chain; holding
 // gathers a cluster that bursts on release; an atom can be grabbed and pulled. It only answers
-// presses on bare containers, never on text, links or controls, so reading and selecting text
-// work as before. Touch keeps scrolling: a tap drops atoms and a long press gathers them.
+// presses in the outer margins, beyond the index, the text and the notes, so reading and
+// selecting text work as before. Touch keeps scrolling: a tap drops atoms and a long press
+// gathers them.
 function enableBondField() {
   if (!window.matchMedia('(prefers-reduced-motion: no-preference)').matches) return;
   const canvas = document.createElement('canvas');
@@ -872,8 +873,7 @@ function enableBondField() {
   const PUSH = 260;     // reach of a modifier-click push
   const SWEEP = 90;     // reach of a held modifier press as it moves
   const MAX = 160;
-  const BLANK = 'html, body, #wrapper, main, .blog-main, .blog-posts, .year-group, .year-posts, '
-    + 'article.prose, .fold, .fold-inner, aside, footer, .site-header';
+  const INTERACTIVE = 'a, button, input, textarea, select, label, summary, [role="button"], [contenteditable], img, video, iframe, dialog';
   let atoms = [];
   let chains = [];      // explicit bonds from dragging: { a, b }
   let rings = [];       // shock rings from pushes: { x, y, born }
@@ -939,11 +939,34 @@ function enableBondField() {
   }
   const pushing = event => event.shiftKey || event.ctrlKey || event.altKey || event.metaKey;
 
+  // The toy only lives in the outer margins: left of the index (post headings or home years) and
+  // right of the column where notes open (or of the text, where notes open inline), at any
+  // height. Inside that band, presses and drags select text as usual, gaps and header included.
+  function band() {
+    const column = (document.querySelector('main') || document.body).getBoundingClientRect();
+    let left = column.left;
+    let right = column.right;
+    const index = document.querySelector('body.post aside nav, body.blog .year-index nav');
+    if (index && index.getClientRects().length) left = Math.min(left, index.getBoundingClientRect().left);
+    const prose = document.querySelector('article.prose.notes-beside');
+    if (prose) {
+      // Same width as the notes: min(260px, half the side margin minus 56px), 16px off the article.
+      const side = (innerWidth - prose.getBoundingClientRect().width) / 2;
+      right = Math.max(right, prose.getBoundingClientRect().right + 16 + Math.min(260, side - 56));
+    }
+    // A little room past the edges, so a drag that starts just beside a line still selects it.
+    return { left: left - 32, right: right + 32 };
+  }
+  const outside = event => {
+    if (!(event.target instanceof Element) || event.target.closest(INTERACTIVE)) return false;
+    const { left, right } = band();
+    return event.clientX < left || event.clientX > right;
+  };
   function isBlank(event) {
     // Mouse events have no isPrimary; only a second finger or pen is turned away.
     if (event.button !== 0 || event.isPrimary === false) return false;
     if (document.documentElement.classList.contains('theme-switching') || document.querySelector('dialog[open]')) return false;
-    return event.target instanceof Element && event.target.matches(BLANK);
+    return outside(event);
   }
 
   // Selection starts on mousedown, so a press that belongs to the field cancels it there.
@@ -957,7 +980,7 @@ function enableBondField() {
 
   // On a Mac, Ctrl-click opens the context menu; on blank space it pushes instead.
   document.addEventListener('contextmenu', event => {
-    if (event.ctrlKey && event.target instanceof Element && event.target.matches(BLANK)) event.preventDefault();
+    if (event.ctrlKey && outside(event)) event.preventDefault();
   });
 
   document.addEventListener('pointerdown', event => {
