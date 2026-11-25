@@ -1074,11 +1074,54 @@ function enableBondField() {
     return Math.max(0, Math.min(1, age / 300, (LIFE - age) / FADE));
   };
 
+  // The text colour only changes with the theme, so read it then instead of every frame.
+  const readColor = () => getComputedStyle(document.body).getPropertyValue('--text-color').trim() || '#222';
+  let color = readColor();
+  let pausedAt = 0;
+  let repaint = false;
+  const root = document.documentElement;
+  const switching = () => root.classList.contains('theme-switching');
+  // A theme switch keeps a still snapshot of the page outside its spreading circle. Atoms hold
+  // still for the switch so that snapshot and the live page agree, and are repainted once in
+  // the new colour where they stand; their clocks pause too, so nothing fades meanwhile.
+  new MutationObserver(() => {
+    color = readColor();
+    repaint = true;
+    if (atoms.length || rings.length) start();
+  }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  new MutationObserver(() => {
+    if (!switching() && (atoms.length || rings.length)) start();
+  }).observe(root, { attributes: true, attributeFilter: ['class'] });
+
+  const keep = list => {
+    const alive = new Set(list);
+    chains = chains.filter(c => alive.has(c.a) && alive.has(c.b));
+  };
+
   function tick(now) {
     frame = 0;
+    if (switching()) {
+      if (!pausedAt) pausedAt = now;
+      if (repaint) { repaint = false; draw(pausedAt); }
+      return; // resumed by the observer when the switch ends
+    }
+    if (pausedAt) {
+      const gap = now - pausedAt;
+      for (const atom of atoms) atom.born += gap;
+      for (const ring of rings) ring.born += gap;
+      pausedAt = 0;
+    }
+    repaint = false;
+    step(now);
+    draw(now);
+    if (atoms.length || press || rings.length) start();
+    else ctx.clearRect(window.scrollX, window.scrollY, innerWidth, innerHeight);
+  }
+
+  function step(now) {
+    const before = atoms.length;
     atoms = atoms.filter(atom => now - atom.born < LIFE);
-    chains = chains.filter(c => atoms.includes(c.a) && atoms.includes(c.b));
-    const chained = new Set(chains.map(c => c.a).concat(chains.map(c => c.b)));
+    if (atoms.length !== before) keep(atoms);
     // Left alone, atoms only drift and bonds are just drawn between near ones. While an atom is
     // being pulled, near neighbours spring toward a resting distance so the molecule follows.
     if (press?.mode === 'grab') for (let i = 0; i < atoms.length; i++) {
@@ -1132,47 +1175,67 @@ function enableBondField() {
     const top = window.scrollY - 20;
     const right = window.scrollX + innerWidth + 20;
     const bottom = window.scrollY + innerHeight + 20;
-    const before = atoms.length;
+    const count = atoms.length;
     atoms = atoms.filter(a => !a.flung || (a.x > left && a.x < right && a.y > top && a.y < bottom));
-    if (atoms.length !== before) chains = chains.filter(c => atoms.includes(c.a) && atoms.includes(c.b));
+    if (atoms.length !== count) keep(atoms);
     rings = rings.filter(ring => now - ring.born < 450);
+  }
 
-    ctx.setTransform(dpr, 0, 0, dpr, -window.scrollX * dpr, -window.scrollY * dpr);
-    ctx.clearRect(window.scrollX, window.scrollY, innerWidth, innerHeight);
-    const color = getComputedStyle(document.body).getPropertyValue('--text-color').trim() || '#222';
+  // Lines are gathered into a few opacity steps and stroked once per step, instead of one
+  // stroke per bond, and only what is on screen is drawn.
+  const LEVELS = 8;
+  function draw(now) {
+    const x0 = window.scrollX;
+    const y0 = window.scrollY;
+    ctx.setTransform(dpr, 0, 0, dpr, -x0 * dpr, -y0 * dpr);
+    ctx.clearRect(x0, y0, innerWidth, innerHeight);
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
     ctx.lineWidth = 1;
-    for (let i = 0; i < atoms.length; i++) {
-      const a = atoms[i];
-      for (let j = i + 1; j < atoms.length; j++) {
-        const b = atoms[j];
+    const visible = atoms.filter(a => a.x > x0 - BOND && a.x < x0 + innerWidth + BOND
+      && a.y > y0 - BOND && a.y < y0 + innerHeight + BOND);
+    const fades = new Map(visible.map(a => [a, fade(a, now)]));
+    const steps = Array.from({ length: LEVELS }, () => null);
+    const line = (a, b, alpha) => {
+      const level = Math.round(alpha / 0.6 * (LEVELS - 1));
+      if (level <= 0) return;
+      const path = steps[level] || (steps[level] = new Path2D());
+      path.moveTo(a.x, a.y);
+      path.lineTo(b.x, b.y);
+    };
+    for (let i = 0; i < visible.length; i++) {
+      const a = visible[i];
+      for (let j = i + 1; j < visible.length; j++) {
+        const b = visible[j];
         const d = Math.hypot(b.x - a.x, b.y - a.y);
-        if (d >= BOND) continue;
-        ctx.globalAlpha = Math.min(fade(a, now), fade(b, now)) * (1 - d / BOND) * 0.6;
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        if (d < BOND) line(a, b, Math.min(fades.get(a), fades.get(b)) * (1 - d / BOND) * 0.6);
       }
     }
+    const chained = new Set();
     for (const { a, b } of chains) {
-      if (Math.hypot(b.x - a.x, b.y - a.y) < BOND) continue; // already drawn above
-      ctx.globalAlpha = Math.min(fade(a, now), fade(b, now)) * 0.35;
-      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      chained.add(a);
+      chained.add(b);
+      if (!fades.has(a) || !fades.has(b) || Math.hypot(b.x - a.x, b.y - a.y) < BOND) continue; // drawn above
+      line(a, b, Math.min(fades.get(a), fades.get(b)) * 0.35);
     }
-    for (const atom of atoms) {
-      ctx.globalAlpha = fade(atom, now) * (chained.has(atom) ? 0.75 : 0.85);
+    steps.forEach((path, level) => {
+      if (!path) return;
+      ctx.globalAlpha = level / (LEVELS - 1) * 0.6;
+      ctx.stroke(path);
+    });
+    for (const atom of visible) {
+      ctx.globalAlpha = fades.get(atom) * (chained.has(atom) ? 0.75 : 0.85);
       ctx.beginPath(); ctx.arc(atom.x, atom.y, atom.r, 0, Math.PI * 2); ctx.fill();
     }
     for (const ring of rings) {
-      const k = (now - ring.born) / 450;
+      const k = Math.min(1, (now - ring.born) / 450);
       ctx.globalAlpha = (1 - k) * 0.35;
       ctx.beginPath(); ctx.arc(ring.x, ring.y, 8 + (PUSH - 8) * (1 - (1 - k) ** 3), 0, Math.PI * 2); ctx.stroke();
     }
     ctx.globalAlpha = 1;
-    if (atoms.length || press || rings.length) start();
-    else ctx.clearRect(window.scrollX, window.scrollY, innerWidth, innerHeight);
   }
   // Atoms are pinned to the page, so a scroll while they live just needs the next frame.
-  window.addEventListener('scroll', () => { if (atoms.length) start(); }, { passive: true });
+  window.addEventListener('scroll', () => { if (atoms.length) { repaint = true; start(); } }, { passive: true });
 }
 
 function enableImgLightense() {
